@@ -1,0 +1,6 @@
+{
+  "name": "Bulk Image Batcher & A4 Page Optimizer",
+  "description": "Gulf Way Group bulk image batch processor, web optimization engine, and ISO A4 sheet layout exporter with Gemini AI image generation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
