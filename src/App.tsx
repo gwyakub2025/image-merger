@@ -24,6 +24,8 @@ import { BatchPromptModal } from './components/BatchPromptModal';
 import { BatchSheetModal } from './components/BatchSheetModal';
 import { ImagePreviewMenuModal } from './components/ImagePreviewMenuModal';
 import { CreateImageModal } from './components/CreateImageModal';
+import { DocumentConverterView } from './components/DocumentConverterView';
+import { ImageSizer } from './components/ImageSizer';
 import { Footer } from './components/Footer';
 import { CheckCircle2 } from 'lucide-react';
 
@@ -41,6 +43,17 @@ const DEFAULT_CONFIG: BatchConfig = {
   backgroundColor: '#FFFFFF',
   marginMm: 12,
   spacingMm: 8,
+  watermark: {
+    enabled: false,
+    type: 'text',
+    text: 'GULF WAY GROUP',
+    fontSize: 54,
+    opacity: 0.16,
+    color: '#334155',
+    position: 'center-diagonal',
+    rotationAngle: -30,
+    imageScale: 0.35,
+  },
 };
 
 export default function App() {
@@ -59,6 +72,7 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'batcher' | 'converter' | 'resizer'>('batcher');
 
   const [progress, setProgress] = useState<ProcessingProgress>({
     total: 0,
@@ -240,9 +254,48 @@ export default function App() {
       updated.outputFormat = 'both';
     }
 
+    if (lower.includes('watermark') || lower.includes('stamp')) {
+      const isDisabling = lower.includes('no watermark') || lower.includes('remove watermark') || lower.includes('disable watermark') || lower.includes('without watermark');
+      let text = config.watermark?.text || 'GULF WAY GROUP';
+      if (lower.includes('confidential')) text = 'CONFIDENTIAL';
+      else if (lower.includes('draft')) text = 'DRAFT';
+      else if (lower.includes('copyright')) text = 'COPYRIGHT';
+      else if (lower.includes('internal')) text = 'INTERNAL ONLY';
+
+      updated.watermark = {
+        ...(config.watermark || {
+          type: 'text',
+          fontSize: 54,
+          opacity: 0.16,
+          color: '#334155',
+          position: 'center-diagonal',
+          rotationAngle: -30,
+          imageScale: 0.35,
+        }),
+        enabled: !isDisabling,
+        text,
+      };
+    }
+
     if (lower.includes('sample') || lower.includes('demo')) {
       await handleLoadSamples();
       return;
+    }
+
+    if (lower.includes('resize') || lower.includes('sizer') || lower.includes('resizer') || lower.includes('crop')) {
+      setActiveTab('resizer');
+      showToast('Switched to Image Sizer & Bulk Resizer tab.');
+      return;
+    }
+
+    if (lower.includes('convert') || lower.includes('converter') || lower.includes('pdf to') || lower.includes('excel') || lower.includes('docx')) {
+      setActiveTab('converter');
+      showToast('Switched to Format Converter tab.');
+      return;
+    }
+
+    if (lower.includes('a4') || lower.includes('batcher') || lower.includes('sheet')) {
+      setActiveTab('batcher');
     }
 
     if (lower.includes('create image') || lower.includes('generate image') || lower.includes('ai image') || lower.includes('make image')) {
@@ -417,6 +470,11 @@ export default function App() {
           }}
           totalBatches={batches.length}
           totalImages={images.length}
+          activeTab={activeTab}
+          onSelectTab={(tab) => {
+            setActiveTab(tab);
+            setIsMobileSidebarOpen(false);
+          }}
         />
       </div>
 
@@ -435,6 +493,8 @@ export default function App() {
           config={config}
           batches={batches}
           totalImagesCount={images.length}
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
           onOpenPromptModal={() => {
             setIsInitialPrompt(false);
             setIsPromptModalOpen(true);
@@ -446,52 +506,67 @@ export default function App() {
           onToggleSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
         />
 
-        {/* Scrollable Workbench Body */}
-        <section className="flex-1 p-4 sm:p-6 space-y-5 overflow-y-auto">
-          {/* Prompt Input Upload Bar */}
-          <PromptInputBar
-            config={config}
-            onApplyPrompt={handleNaturalLanguagePrompt}
-            onOpenCreateImageModal={() => setIsCreateImageModalOpen(true)}
-            totalBatches={batches.length}
-            totalImages={images.length}
-          />
+        {/* Dynamic Tab Views */}
+        {activeTab === 'batcher' ? (
+          /* Scrollable Workbench Body */
+          <section className="flex-1 p-4 sm:p-6 space-y-5 overflow-y-auto">
+            {/* Prompt Input Upload Bar */}
+            <PromptInputBar
+              config={config}
+              onApplyPrompt={handleNaturalLanguagePrompt}
+              onOpenCreateImageModal={() => setIsCreateImageModalOpen(true)}
+              totalBatches={batches.length}
+              totalImages={images.length}
+            />
 
-          {/* Bulk Upload Zone */}
-          <UploadZone
-            onFilesSelected={handleFilesSelected}
-            onLoadSamples={handleLoadSamples}
-            onOpenCreateImageModal={() => setIsCreateImageModalOpen(true)}
-            progress={progress}
-            totalImagesCount={images.length}
-            maxImagesPerPage={config.imagesPerPage}
-          />
+            {/* Bulk Upload Zone */}
+            <UploadZone
+              onFilesSelected={handleFilesSelected}
+              onLoadSamples={handleLoadSamples}
+              onOpenCreateImageModal={() => setIsCreateImageModalOpen(true)}
+              progress={progress}
+              totalImagesCount={images.length}
+              maxImagesPerPage={config.imagesPerPage}
+            />
 
-          {/* Web Performance & Compression Telemetry Stats */}
-          <OptimizationStats
-            images={images}
-            batches={batches}
-            maxImagesPerPage={config.imagesPerPage}
-          />
+            {/* Web Performance & Compression Telemetry Stats */}
+            <OptimizationStats
+              images={images}
+              batches={batches}
+              maxImagesPerPage={config.imagesPerPage}
+            />
 
-          {/* Active A4 Batch Sheets Grid */}
-          <BatchGrid
-            batches={batches}
-            config={config}
-            onPreviewBatch={(idx) => setActivePreviewIndex(idx)}
-            onRemoveImage={handleRemoveImage}
-            onMoveImage={handleMoveImage}
-            onUploadMore={() => {
-              const input = document.getElementById('bulk-file-input') as HTMLInputElement;
-              input?.click();
+            {/* Active A4 Batch Sheets Grid */}
+            <BatchGrid
+              batches={batches}
+              config={config}
+              onPreviewBatch={(idx) => setActivePreviewIndex(idx)}
+              onRemoveImage={handleRemoveImage}
+              onMoveImage={handleMoveImage}
+              onUploadMore={() => {
+                const input = document.getElementById('bulk-file-input') as HTMLInputElement;
+                input?.click();
+              }}
+              onPreviewImage={(image, batchIndex, slotIndex) => {
+                setPreviewImageData({ image, batchIndex, slotIndex });
+              }}
+              onUpdateFilter={handleUpdateImageFilter}
+              onApplyFilterToBatch={handleApplyFilterToBatch}
+            />
+          </section>
+        ) : activeTab === 'converter' ? (
+          /* Bidirectional Format Converter Tab View */
+          <DocumentConverterView
+            onSendImagesToBatchQueue={(files) => {
+              handleFilesSelected(files);
+              showToast(`Added ${files.length} extracted images to A4 batch queue!`);
             }}
-            onPreviewImage={(image, batchIndex, slotIndex) => {
-              setPreviewImageData({ image, batchIndex, slotIndex });
-            }}
-            onUpdateFilter={handleUpdateImageFilter}
-            onApplyFilterToBatch={handleApplyFilterToBatch}
+            onSwitchToBatcher={() => setActiveTab('batcher')}
           />
-        </section>
+        ) : (
+          /* Image Sizer & Resizer Tab View */
+          <ImageSizer />
+        )}
 
         {/* High Density Telemetry Footer */}
         <Footer

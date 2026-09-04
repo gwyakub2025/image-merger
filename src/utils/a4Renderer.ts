@@ -1,4 +1,4 @@
-import { BatchConfig, UploadedImage } from '../types';
+import { BatchConfig, UploadedImage, WatermarkConfig } from '../types';
 
 export const A4_PORTRAIT_WIDTH = 1240;
 export const A4_PORTRAIT_HEIGHT = 1754;
@@ -356,6 +356,11 @@ export async function renderBatchToCanvas(
     ctx.fillText(`Page ${batchIndex + 1} of ${totalBatches}`, width - marginPx, footerY);
   }
 
+  // Draw Watermark Layer if configured
+  if (config.watermark?.enabled) {
+    await drawWatermarkLayer(ctx, width, height, config.watermark);
+  }
+
   const quality = config.quality || 0.88;
   const dataUrl = canvas.toDataURL('image/jpeg', quality);
 
@@ -371,6 +376,108 @@ export async function renderBatchToCanvas(
   });
 
   return { dataUrl, blob };
+}
+
+/**
+ * Draws a custom watermark layer (text or image) on top of the A4 canvas
+ */
+export async function drawWatermarkLayer(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  watermark: WatermarkConfig
+): Promise<void> {
+  if (!watermark || !watermark.enabled) return;
+
+  ctx.save();
+  const opacity = Math.max(0.02, Math.min(0.95, watermark.opacity ?? 0.18));
+  ctx.globalAlpha = opacity;
+
+  const pos = watermark.position || 'center-diagonal';
+
+  if (watermark.type === 'text') {
+    const text = watermark.text?.trim() || 'CONFIDENTIAL';
+    const fontSize = watermark.fontSize || 54;
+    const color = watermark.color || '#334155';
+
+    ctx.fillStyle = color;
+    ctx.font = `900 ${fontSize}px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+
+    if (pos === 'center-diagonal') {
+      const angle = ((watermark.rotationAngle ?? -30) * Math.PI) / 180;
+      ctx.translate(width / 2, height / 2);
+      ctx.rotate(angle);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 0, 0);
+
+      // Security stamp double outline
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.strokeText(text, 0, 0);
+    } else if (pos === 'center') {
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, width / 2, height / 2);
+    } else if (pos === 'bottom-right') {
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(text, width - 60, height - 60);
+    } else if (pos === 'top-right') {
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'top';
+      ctx.fillText(text, width - 60, 60);
+    } else if (pos === 'repeat-pattern') {
+      const angle = (-25 * Math.PI) / 180;
+      const stepX = 360;
+      const stepY = 240;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `700 ${Math.round(fontSize * 0.5)}px system-ui, -apple-system, sans-serif`;
+
+      for (let y = -height * 0.2; y < height * 1.3; y += stepY) {
+        for (let x = -width * 0.2; x < width * 1.3; x += stepX) {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(angle);
+          ctx.fillText(text, 0, 0);
+          ctx.restore();
+        }
+      }
+    }
+  } else if (watermark.type === 'image' && watermark.imageUrl) {
+    try {
+      const img = await loadImageElement(watermark.imageUrl);
+      const scale = watermark.imageScale || 0.35;
+      const targetW = width * scale;
+      const targetH = (targetW / img.naturalWidth) * img.naturalHeight;
+
+      if (pos === 'center-diagonal') {
+        const angle = ((watermark.rotationAngle ?? -30) * Math.PI) / 180;
+        ctx.translate(width / 2, height / 2);
+        ctx.rotate(angle);
+        ctx.drawImage(img, -targetW / 2, -targetH / 2, targetW, targetH);
+      } else if (pos === 'center') {
+        ctx.drawImage(img, (width - targetW) / 2, (height - targetH) / 2, targetW, targetH);
+      } else if (pos === 'bottom-right') {
+        ctx.drawImage(img, width - targetW - 60, height - targetH - 60, targetW, targetH);
+      } else if (pos === 'top-right') {
+        ctx.drawImage(img, width - targetW - 60, 60, targetW, targetH);
+      } else if (pos === 'repeat-pattern') {
+        const stepX = targetW * 1.6;
+        const stepY = targetH * 1.6;
+        for (let y = 60; y < height - 60; y += stepY) {
+          for (let x = 60; x < width - 60; x += stepX) {
+            ctx.drawImage(img, x, y, targetW * 0.5, targetH * 0.5);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to render custom watermark image:', e);
+    }
+  }
+
+  ctx.restore();
 }
 
 function loadImageElement(src: string): Promise<HTMLImageElement> {

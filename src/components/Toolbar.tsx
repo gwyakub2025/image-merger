@@ -9,7 +9,10 @@ import {
   ChevronDown,
   Loader2,
   Menu,
-  Sparkles
+  Sparkles,
+  Layers,
+  ArrowRightLeft,
+  Maximize2
 } from 'lucide-react';
 import { BatchConfig, OutputFormat, BatchSet } from '../types';
 
@@ -17,6 +20,8 @@ interface ToolbarProps {
   config: BatchConfig;
   batches: BatchSet[];
   totalImagesCount: number;
+  activeTab?: 'batcher' | 'converter' | 'resizer';
+  onSelectTab?: (tab: 'batcher' | 'converter' | 'resizer') => void;
   onOpenPromptModal: () => void;
   onOpenCreateImageModal?: () => void;
   onExportAll: (format?: OutputFormat) => void;
@@ -29,6 +34,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   config,
   batches,
   totalImagesCount,
+  activeTab = 'batcher',
+  onSelectTab,
   onOpenPromptModal,
   onOpenCreateImageModal,
   onExportAll,
@@ -42,10 +49,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   return (
     <header 
       id="high-density-header"
-      className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20"
+      className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 shrink-0 z-20 gap-3"
     >
       {/* Title & Constraint description */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 shrink-0">
         {onToggleSidebar && (
           <button
             type="button"
@@ -74,8 +81,66 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </div>
       </div>
 
+      {/* Navigation Tabs Switcher */}
+      {onSelectTab && (
+        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-2xs">
+          <button
+            type="button"
+            id="tab-a4-batcher-btn"
+            onClick={() => onSelectTab('batcher')}
+            className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'batcher'
+                ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/60'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>A4 Batch Optimizer</span>
+            {totalImagesCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-indigo-100 text-indigo-800 font-bold">
+                {totalImagesCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            id="tab-format-converter-btn"
+            onClick={() => onSelectTab('converter')}
+            className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'converter'
+                ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/60'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Format Converter</span>
+            <span className="hidden md:inline-block ml-1 text-[9px] font-mono px-1.5 py-0.2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded">
+              PDF ⇄ JPG, XLS, DOC
+            </span>
+          </button>
+
+          <button
+            type="button"
+            id="tab-image-sizer-btn"
+            onClick={() => onSelectTab('resizer')}
+            className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'resizer'
+                ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/60'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Maximize2 className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Image Sizer</span>
+            <span className="hidden lg:inline-block ml-1 text-[9px] font-mono px-1.5 py-0.2 bg-blue-50 text-blue-700 border border-blue-200 rounded">
+              Bulk Resize &amp; Crop
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Action Buttons */}
-      <div className="flex items-center gap-2.5 sm:gap-3">
+      <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
         {/* CLEAR ALL button */}
         {hasBatches && (
           <button

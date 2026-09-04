@@ -1,0 +1,47 @@
+<svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Top Arc -->
+  <path
+    d="M50 2
+       C24.5 2 4 22.5 4 47
+       L4 54.5
+       L21 54.5
+       C21.5 31.5 34.5 19 50 19
+       C65.5 19 78.5 31.5 79 47
+       L96 47
+       C96 22.5 75.5 2 50 2 Z"
+    fill="#508ec2"
+  />
+
+  <!-- Main Body: Stylized G on right, W in center/bottom, pin silhouette -->
+  <path
+    d="M4 57
+       L21 57
+       C23 66 28 72 35 77
+       L50 63
+       L65 77
+       C71 73 75.5 68 77 61
+       L59.5 61
+       L59.5 49.5
+       L96 49.5
+       L96 52
+       L62.5 98.5
+       L50 86
+       L37.5 98.5
+       L4 60 Z
+       M50 90
+       L59 99
+       L50 108
+       L41 99 Z"
+    fill="#508ec2"
+    fill-rule="evenodd"
+  />
+
+  <!-- Bottom Tip Diamond -->
+  <path
+    d="M50 93.5
+       L62 105.5
+       L50 117.5
+       L38 105.5 Z"
+    fill="#508ec2"
+  />
+</svg>
