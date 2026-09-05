@@ -25,7 +25,7 @@ import {
 } from '../types';
 
 const DEFAULT_WATERMARK_LOGO =
-  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'><circle cx='120' cy='120' r='108' fill='none' stroke='%23334155' stroke-width='4' stroke-dasharray='8 6'/><circle cx='120' cy='120' r='94' fill='none' stroke='%23334155' stroke-width='2'/><polygon points='65,120 120,65 175,120 120,175' fill='none' stroke='%23334155' stroke-width='4'/><text x='120' y='114' font-family='system-ui,sans-serif' font-weight='900' font-size='20' text-anchor='middle' fill='%23334155'>GULF WAY</text><text x='120' y='136' font-family='system-ui,sans-serif' font-weight='700' font-size='13' text-anchor='middle' fill='%23334155'>OFFICIAL SEAL</text></svg>";
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 120'><path d='M50 2 C23.5 2 4.2 22.5 4 47 L20.8 47 C21.2 31.8 34.2 19.5 50 19.5 C65.8 19.5 78.8 31.8 79.2 47 L96 47 C95.8 22.5 76.5 2 50 2 Z' fill='%234f8ec2'/><path d='M59.5 37.5 L96 37.5 L96 47 L59.5 47 Z' fill='%234f8ec2'/><path d='M4 49.5 L20.8 49.5 C25 61 31.5 64 35.5 64 C39.5 64 45 57 50 52 C55 57 60.5 64 64.5 64 C68.5 64 75 61 79.2 49.5 L96 49.5 L62 86.5 L50 74.5 L38 86.5 Z' fill='%234f8ec2'/><path d='M50 78 L61.5 89.5 L50 118 L38.5 89.5 Z' fill='%234f8ec2'/></svg>";
 
 interface BatchPromptModalProps {
   isOpen: boolean;
@@ -679,7 +679,7 @@ export const BatchPromptModal: React.FC<BatchPromptModalProps> = ({
                               onClick={() => setWatermarkImageUrl(DEFAULT_WATERMARK_LOGO)}
                               className="px-2.5 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 rounded-lg border border-indigo-200 font-medium"
                             >
-                              Official GW Emblem
+                              Official Gulf Way Logo
                             </button>
                           </div>
                           <p className="text-[10px] text-slate-500">Supports transparent PNG, SVG, JPG, or WebP</p>

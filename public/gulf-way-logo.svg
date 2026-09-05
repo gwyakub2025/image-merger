@@ -1,47 +1,56 @@
 <svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Top Arc -->
+  <defs>
+    <linearGradient id="gulfWayGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#5795ca" />
+      <stop offset="100%" stopColor="#4383b7" />
+    </linearGradient>
+  </defs>
+
+  <!-- 1. Upper Loop / Top Arch of the G -->
   <path
-    d="M50 2
-       C24.5 2 4 22.5 4 47
-       L4 54.5
-       L21 54.5
-       C21.5 31.5 34.5 19 50 19
-       C65.5 19 78.5 31.5 79 47
-       L96 47
-       C96 22.5 75.5 2 50 2 Z"
-    fill="#508ec2"
+    d="M 50 2
+       C 23.5 2 4.2 22.5 4 47
+       L 20.8 47
+       C 21.2 31.8 34.2 19.5 50 19.5
+       C 65.8 19.5 78.8 31.8 79.2 47
+       L 96 47
+       C 95.8 22.5 76.5 2 50 2 Z"
+    fill="url(#gulfWayGradient)"
   />
 
-  <!-- Main Body: Stylized G on right, W in center/bottom, pin silhouette -->
+  <!-- 2. G Crossbar on the right -->
   <path
-    d="M4 57
-       L21 57
-       C23 66 28 72 35 77
-       L50 63
-       L65 77
-       C71 73 75.5 68 77 61
-       L59.5 61
-       L59.5 49.5
-       L96 49.5
-       L96 52
-       L62.5 98.5
-       L50 86
-       L37.5 98.5
-       L4 60 Z
-       M50 90
-       L59 99
-       L50 108
-       L41 99 Z"
-    fill="#508ec2"
-    fill-rule="evenodd"
+    d="M 59.5 37.5
+       L 96 37.5
+       L 96 47
+       L 59.5 47
+       Z"
+    fill="url(#gulfWayGradient)"
   />
 
-  <!-- Bottom Tip Diamond -->
+  <!-- 3. Lower Body with Stylized 'W' Peak & Slits -->
   <path
-    d="M50 93.5
-       L62 105.5
-       L50 117.5
-       L38 105.5 Z"
-    fill="#508ec2"
+    d="M 4 49.5
+       L 20.8 49.5
+       C 25 61 31.5 64 35.5 64
+       C 39.5 64 45 57 50 52
+       C 55 57 60.5 64 64.5 64
+       C 68.5 64 75 61 79.2 49.5
+       L 96 49.5
+       L 62 86.5
+       L 50 74.5
+       L 38 86.5
+       Z"
+    fill="url(#gulfWayGradient)"
+  />
+
+  <!-- 4. Standalone Diamond Tip at the bottom point -->
+  <path
+    d="M 50 78
+       L 61.5 89.5
+       L 50 118
+       L 38.5 89.5
+       Z"
+    fill="url(#gulfWayGradient)"
   />
 </svg>

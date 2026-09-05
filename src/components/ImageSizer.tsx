@@ -33,6 +33,7 @@ import {
   exportSelectedImages 
 } from '../utils/imageSizerEngine';
 import { createSampleImages } from '../utils/imageOptimizer';
+import { GulfWayLogo } from './GulfWayLogo';
 
 export const ImageSizer: React.FC = () => {
   // Image queue state
@@ -305,16 +306,17 @@ export const ImageSizer: React.FC = () => {
       <header className="h-14 bg-[#181d28] border-b border-slate-800/80 px-4 sm:px-6 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white shadow-xs">
-              <Maximize2 className="w-4 h-4" />
+            <div className="p-1 bg-slate-900 border border-slate-700/80 rounded-xl shadow-xs flex items-center justify-center shrink-0">
+              <GulfWayLogo className="w-7 h-7" />
             </div>
             <div className="flex flex-col">
               <span className="font-extrabold text-sm tracking-tight text-white flex items-center gap-1.5">
-                ImageResizer
+                Image Sizer
                 <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                   PRO
                 </span>
               </span>
+              <span className="text-[10px] text-slate-400 font-medium">Gulf Way Group</span>
             </div>
           </div>
 

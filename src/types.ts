@@ -4,6 +4,8 @@ export type OutputFormat = 'jpg' | 'pdf' | 'both';
 export type Layout3Style = 'featured-top' | 'equal-rows' | 'equal-cols';
 export type ImageFilterType = 'none' | 'grayscale' | 'sepia' | 'contrast';
 
+export type ActiveTab = 'batcher' | 'converter' | 'resizer' | 'pdf-editor' | 'wps' | 'sheet-merger';
+
 export type WatermarkType = 'text' | 'image';
 export type WatermarkPosition = 'center-diagonal' | 'center' | 'bottom-right' | 'top-right' | 'repeat-pattern';
 

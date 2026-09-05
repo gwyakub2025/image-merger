@@ -38,6 +38,7 @@ import {
 } from '../utils/documentConverter';
 import { formatBytes } from '../utils/imageOptimizer';
 import jsPDF from 'jspdf';
+import { GulfWayLogo } from './GulfWayLogo';
 import * as XLSX from 'xlsx';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
@@ -413,8 +414,8 @@ export const DocumentConverterView: React.FC<DocumentConverterViewProps> = ({
       {/* Top Banner: Gulf Way Group Format Converter */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs font-black text-lg">
-            GW
+          <div className="p-2 bg-slate-50 border border-slate-200/80 rounded-2xl shadow-xs flex items-center justify-center shrink-0">
+            <GulfWayLogo className="w-10 h-10" />
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">

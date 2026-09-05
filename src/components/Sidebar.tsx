@@ -12,9 +12,13 @@ import {
   ArrowRightLeft,
   FileSpreadsheet,
   Stamp,
-  Maximize2
+  Maximize2,
+  FileBarChart2,
+  TableProperties,
+  FileEdit
 } from 'lucide-react';
-import { BatchConfig, OutputFormat } from '../types';
+import { BatchConfig, OutputFormat, ActiveTab } from '../types';
+import { GulfWayLogo } from './GulfWayLogo';
 
 interface SidebarProps {
   config: BatchConfig;
@@ -23,8 +27,8 @@ interface SidebarProps {
   onOpenCreateImageModal?: () => void;
   totalBatches: number;
   totalImages: number;
-  activeTab?: 'batcher' | 'converter' | 'resizer';
-  onSelectTab?: (tab: 'batcher' | 'converter' | 'resizer') => void;
+  activeTab?: ActiveTab;
+  onSelectTab?: (tab: ActiveTab) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -45,21 +49,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Brand & Title Header */}
       <div className="p-5 border-b border-slate-100">
         <div className="flex items-center gap-2.5 mb-1.5">
-          <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center shadow-xs text-white font-black text-xs tracking-tight">
-            GW
+          <div className="p-1 bg-slate-50 border border-slate-200/80 rounded-xl shadow-2xs flex items-center justify-center shrink-0">
+            <GulfWayLogo className="w-7 h-7" />
           </div>
           <div className="flex flex-col min-w-0">
             <span className="font-bold text-sm tracking-tight text-slate-900 truncate">
               Gulf Way Group
             </span>
-            <span className="text-[10px] text-slate-400 font-medium">Enterprise Tools</span>
+            <span className="text-[10px] text-slate-400 font-medium">Enterprise Suite</span>
           </div>
           <span className="text-[9px] font-mono px-1.5 py-0.5 bg-indigo-50 text-indigo-700 font-bold rounded ml-auto">
-            v2.5
+            v3.0
           </span>
         </div>
-        <p className="text-[10px] text-slate-400 uppercase font-semibold tracking-widest">
-          A4 Batch &amp; Format Studio
+        <p className="text-[10px] text-slate-400 uppercase font-semibold tracking-widest pl-0.5">
+          Unified Multi-Tool Portal
         </p>
       </div>
 
@@ -126,7 +130,64 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span>Image Sizer</span>
               </div>
               <span className="text-[9px] font-mono px-1.5 py-0.2 bg-blue-50 text-blue-700 border border-blue-200 rounded font-bold">
-                HOT
+                CROP
+              </span>
+            </button>
+
+            <button
+              type="button"
+              id="sidebar-nav-pdf-editor-btn"
+              onClick={() => onSelectTab('pdf-editor')}
+              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors ${
+                activeTab === 'pdf-editor'
+                  ? 'bg-emerald-50 text-emerald-800 font-semibold border border-emerald-300/80 shadow-2xs'
+                  : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FileEdit className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="truncate">PDF Editor (Sejda)</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.2 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded font-bold">
+                PRO
+              </span>
+            </button>
+
+            <button
+              type="button"
+              id="sidebar-nav-wps-btn"
+              onClick={() => onSelectTab('wps')}
+              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors ${
+                activeTab === 'wps'
+                  ? 'bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200/80 shadow-2xs'
+                  : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FileBarChart2 className="w-4 h-4 text-amber-600 shrink-0" />
+                <span className="truncate">WPS Report Extractor</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.2 bg-amber-50 text-amber-700 border border-amber-200 rounded font-bold">
+                WPS
+              </span>
+            </button>
+
+            <button
+              type="button"
+              id="sidebar-nav-merger-btn"
+              onClick={() => onSelectTab('sheet-merger')}
+              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors ${
+                activeTab === 'sheet-merger'
+                  ? 'bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200/80 shadow-2xs'
+                  : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <TableProperties className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="truncate">Vlookup Sheet Merger</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded font-bold">
+                SM
               </span>
             </button>
           </div>

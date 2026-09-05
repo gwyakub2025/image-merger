@@ -5,7 +5,8 @@ import {
   BatchSet, 
   ProcessingProgress, 
   OutputFormat,
-  ImageFilterType 
+  ImageFilterType,
+  ActiveTab
 } from './types';
 import { optimizeImageFile, createSampleImages } from './utils/imageOptimizer';
 import { renderBatchToCanvas } from './utils/a4Renderer';
@@ -26,6 +27,8 @@ import { ImagePreviewMenuModal } from './components/ImagePreviewMenuModal';
 import { CreateImageModal } from './components/CreateImageModal';
 import { DocumentConverterView } from './components/DocumentConverterView';
 import { ImageSizer } from './components/ImageSizer';
+import { PdfEditorView } from './components/pdfEditor/PdfEditorView';
+import { ExternalModuleView } from './components/ExternalModuleView';
 import { Footer } from './components/Footer';
 import { CheckCircle2 } from 'lucide-react';
 
@@ -72,7 +75,7 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'batcher' | 'converter' | 'resizer'>('batcher');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('batcher');
 
   const [progress, setProgress] = useState<ProcessingProgress>({
     total: 0,
@@ -291,6 +294,24 @@ export default function App() {
     if (lower.includes('convert') || lower.includes('converter') || lower.includes('pdf to') || lower.includes('excel') || lower.includes('docx')) {
       setActiveTab('converter');
       showToast('Switched to Format Converter tab.');
+      return;
+    }
+
+    if (lower.includes('pdf editor') || lower.includes('sejda') || lower.includes('edit pdf') || lower.includes('sign pdf') || lower.includes('redact') || lower.includes('whiteout')) {
+      setActiveTab('pdf-editor');
+      showToast('Switched to Sejda-Grade PDF Editor tab.');
+      return;
+    }
+
+    if (lower.includes('wps') || lower.includes('payroll') || lower.includes('sif') || lower.includes('report extractor')) {
+      setActiveTab('wps');
+      showToast('Switched to WPS Report Extractor tab.');
+      return;
+    }
+
+    if (lower.includes('vlookup') || lower.includes('sheet data merger') || lower.includes('sheet merger') || lower.includes('merger')) {
+      setActiveTab('sheet-merger');
+      showToast('Switched to Vlookup - Sheet Data Merger tab.');
       return;
     }
 
@@ -563,9 +584,46 @@ export default function App() {
             }}
             onSwitchToBatcher={() => setActiveTab('batcher')}
           />
-        ) : (
+        ) : activeTab === 'resizer' ? (
           /* Image Sizer & Resizer Tab View */
           <ImageSizer />
+        ) : activeTab === 'pdf-editor' ? (
+          /* Sejda-Grade PDF Editor Tab View */
+          <PdfEditorView />
+        ) : activeTab === 'wps' ? (
+          /* WPS Report Extractor Tab View */
+          <ExternalModuleView
+            id="wps-report-extractor"
+            title="WPS Report Extractor"
+            subtitle="Gulf Way Group Automated Wages Protection System (WPS) & SIF File Processor"
+            url="https://gulfway-wps.vercel.app/"
+            iconType="wps"
+            tag="WPS 2.0"
+            description="Extract, validate, and convert Wages Protection System salary files (SIF), Ministry of Human Resources payroll batches, and employee transaction records."
+            features={[
+              "WPS / SIF Extraction",
+              "MOL Compliance Checker",
+              "Excel & PDF Report Generation",
+              "Direct Multi-Format Export"
+            ]}
+          />
+        ) : (
+          /* Vlookup - Sheet Data Merger Tab View */
+          <ExternalModuleView
+            id="vlookup-sheet-data-merger"
+            title="Vlookup - Sheet Data Merger"
+            subtitle="Gulf Way Group High-Speed Multi-Sheet & Column Data Merger"
+            url="https://gulfway-sm.vercel.app/"
+            iconType="merger"
+            tag="DATA MERGER"
+            description="High-speed spreadsheet consolidation, automated key column VLOOKUP matching, cross-file record reconciliation, and duplicate elimination."
+            features={[
+              "Automated Key Column VLOOKUP",
+              "Multi-Sheet Consolidation",
+              "Record Deduplication & Diffing",
+              "Export to XLS, XLSX, CSV"
+            ]}
+          />
         )}
 
         {/* High Density Telemetry Footer */}

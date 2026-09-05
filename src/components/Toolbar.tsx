@@ -12,16 +12,20 @@ import {
   Sparkles,
   Layers,
   ArrowRightLeft,
-  Maximize2
+  Maximize2,
+  FileBarChart2,
+  TableProperties,
+  FileEdit
 } from 'lucide-react';
-import { BatchConfig, OutputFormat, BatchSet } from '../types';
+import { BatchConfig, OutputFormat, BatchSet, ActiveTab } from '../types';
+import { GulfWayLogo } from './GulfWayLogo';
 
 interface ToolbarProps {
   config: BatchConfig;
   batches: BatchSet[];
   totalImagesCount: number;
-  activeTab?: 'batcher' | 'converter' | 'resizer';
-  onSelectTab?: (tab: 'batcher' | 'converter' | 'resizer') => void;
+  activeTab?: ActiveTab;
+  onSelectTab?: (tab: ActiveTab) => void;
   onOpenPromptModal: () => void;
   onOpenCreateImageModal?: () => void;
   onExportAll: (format?: OutputFormat) => void;
@@ -49,10 +53,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   return (
     <header 
       id="high-density-header"
-      className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 shrink-0 z-20 gap-3"
+      className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-6 lg:px-8 shrink-0 z-20 gap-3 overflow-x-auto"
     >
-      {/* Title & Constraint description */}
-      <div className="flex items-center gap-3 shrink-0">
+      {/* Title & Brand with Gulf Way Logo */}
+      <div className="flex items-center gap-2.5 shrink-0">
         {onToggleSidebar && (
           <button
             type="button"
@@ -63,19 +67,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <Menu className="w-5 h-5" />
           </button>
         )}
+        <div className="p-1 bg-slate-50 border border-slate-200/80 rounded-xl shadow-2xs flex items-center justify-center shrink-0">
+          <GulfWayLogo className="w-7 h-7" />
+        </div>
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 shadow-2xs">
               Gulf Way Group
             </span>
-            <h1 className="text-sm font-bold text-slate-800 tracking-tight hidden xs:inline">
+            <h1 className="text-sm font-bold text-slate-800 tracking-tight hidden lg:inline">
               Active Batch Processor
             </h1>
-            <span className="hidden sm:inline-block px-1.5 py-0.2 text-[9px] font-mono font-bold uppercase tracking-wider bg-slate-100 text-slate-600 rounded">
+            <span className="hidden xl:inline-block px-1.5 py-0.2 text-[9px] font-mono font-bold uppercase tracking-wider bg-slate-100 text-slate-600 rounded">
               ISO 216
             </span>
           </div>
-          <p className="text-xs text-slate-500 font-sans">
+          <p className="text-xs text-slate-500 font-sans hidden sm:block">
             Constraint: Max {config.imagesPerPage} assets per A4 sheet • {config.orientation.toUpperCase()}
           </p>
         </div>
@@ -83,58 +90,103 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
       {/* Navigation Tabs Switcher */}
       {onSelectTab && (
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-2xs">
+        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-2xs shrink-0 overflow-x-auto max-w-full">
+          {/* A4 Batch Optimizer */}
           <button
             type="button"
             id="tab-a4-batcher-btn"
             onClick={() => onSelectTab('batcher')}
-            className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
               activeTab === 'batcher'
                 ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/60'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>A4 Batch Optimizer</span>
+            <span className="whitespace-nowrap">A4 Batch</span>
             {totalImagesCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-indigo-100 text-indigo-800 font-bold">
+              <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-indigo-100 text-indigo-800 font-bold">
                 {totalImagesCount}
               </span>
             )}
           </button>
 
+          {/* Format Converter */}
           <button
             type="button"
             id="tab-format-converter-btn"
             onClick={() => onSelectTab('converter')}
-            className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
               activeTab === 'converter'
                 ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/60'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Format Converter</span>
-            <span className="hidden md:inline-block ml-1 text-[9px] font-mono px-1.5 py-0.2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded">
-              PDF ⇄ JPG, XLS, DOC
-            </span>
+            <span className="whitespace-nowrap">Format Converter</span>
           </button>
 
+          {/* Image Sizer */}
           <button
             type="button"
             id="tab-image-sizer-btn"
             onClick={() => onSelectTab('resizer')}
-            className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
               activeTab === 'resizer'
                 ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/60'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Maximize2 className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Image Sizer</span>
-            <span className="hidden lg:inline-block ml-1 text-[9px] font-mono px-1.5 py-0.2 bg-blue-50 text-blue-700 border border-blue-200 rounded">
-              Bulk Resize &amp; Crop
+            <span className="whitespace-nowrap">Image Sizer</span>
+          </button>
+
+          {/* Module: PDF Editor (Sejda-Grade) */}
+          <button
+            type="button"
+            id="tab-pdf-editor-btn"
+            onClick={() => onSelectTab('pdf-editor')}
+            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+              activeTab === 'pdf-editor'
+                ? 'bg-white text-emerald-700 shadow-xs border border-slate-200/60'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <FileEdit className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="whitespace-nowrap">PDF Editor</span>
+            <span className="ml-0.5 text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold">
+              Sejda
             </span>
+          </button>
+
+          {/* Module 4: WPS Report Extractor */}
+          <button
+            type="button"
+            id="tab-wps-extractor-btn"
+            onClick={() => onSelectTab('wps')}
+            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+              activeTab === 'wps'
+                ? 'bg-white text-amber-700 shadow-xs border border-slate-200/60'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <FileBarChart2 className="w-3.5 h-3.5 text-amber-600" />
+            <span className="whitespace-nowrap">WPS Report Extractor</span>
+          </button>
+
+          {/* Module 5: Vlookup - Sheet Data Merger */}
+          <button
+            type="button"
+            id="tab-sheet-merger-btn"
+            onClick={() => onSelectTab('sheet-merger')}
+            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+              activeTab === 'sheet-merger'
+                ? 'bg-white text-emerald-700 shadow-xs border border-slate-200/60'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <TableProperties className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="whitespace-nowrap">Vlookup - Sheet Data Merger</span>
           </button>
         </div>
       )}
