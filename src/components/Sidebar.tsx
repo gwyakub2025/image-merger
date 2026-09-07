@@ -146,7 +146,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-2">
                 <FileEdit className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="truncate">PDF Editor (Sejda)</span>
+                <span className="truncate">PDF Editor</span>
               </div>
               <span className="text-[9px] font-mono px-1.5 py-0.2 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded font-bold">
                 PRO

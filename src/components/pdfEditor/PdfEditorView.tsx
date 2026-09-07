@@ -35,7 +35,14 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  X
+  X,
+  GripHorizontal,
+  GripVertical,
+  Check,
+  Minus,
+  ArrowUp,
+  ArrowDown,
+  Files
 } from 'lucide-react';
 import {
   PdfPageModel,
@@ -59,6 +66,7 @@ import {
 } from '../../utils/pdfEditorEngine';
 import { SignatureModal } from './SignatureModal';
 import { WatermarkBatesModal } from './WatermarkBatesModal';
+import { SymbolsImagesModal } from './SymbolsImagesModal';
 import { GulfWayLogo } from '../GulfWayLogo';
 
 export const PdfEditorView: React.FC = () => {
@@ -125,19 +133,22 @@ export const PdfEditorView: React.FC = () => {
     author: 'Gulf Way Group',
     subject: 'WPS & Operations',
     keywords: 'Gulf Way, WPS, PDF',
-    creator: 'Gulf Way Sejda Editor',
+    creator: 'Gulf Way Advanced PDF Editor',
   });
 
   // Modals
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState<boolean>(false);
   const [isWatermarkModalOpen, setIsWatermarkModalOpen] = useState<boolean>(false);
+  const [isSymbolsModalOpen, setIsSymbolsModalOpen] = useState<boolean>(false);
+  const [modalTargetPage, setModalTargetPage] = useState<number>(0);
 
   // History Stack for Undo / Redo
   const [history, setHistory] = useState<AnyAnnotation[][]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
 
-  // Canvas Refs for pages
+  // Canvas Refs & Scroll container Ref for pages
   const pageCanvasRefs = useRef<{ [key: number]: HTMLCanvasElement | null }>({});
+  const scrollStageRef = useRef<HTMLDivElement | null>(null);
 
   // Push to history
   const pushToHistory = (newAnnotations: AnyAnnotation[]) => {
@@ -319,8 +330,9 @@ export const PdfEditorView: React.FC = () => {
   };
 
   // Applying signature from modal
-  const handleApplySignature = (dataUrl: string, name?: string) => {
-    const activePage = pages[activePageIndex] || pages[0];
+  const handleApplySignature = (dataUrl: string, name?: string, targetPageIndex?: number) => {
+    const resolvedPageIndex = targetPageIndex !== undefined ? targetPageIndex : activePageIndex;
+    const activePage = pages.find((p) => p.pageIndex === resolvedPageIndex && !p.isDeleted) || pages[0];
     if (!activePage) return;
 
     const newSig: SignatureAnnotation = {
@@ -340,6 +352,7 @@ export const PdfEditorView: React.FC = () => {
     pushToHistory(updated);
     setSelectedAnnotationId(newSig.id);
     setActiveTool('select');
+    setActivePageIndex(activePage.pageIndex);
   };
 
   // Page Operations
@@ -436,12 +449,471 @@ export const PdfEditorView: React.FC = () => {
     setSelectedAnnotationId(null);
   };
 
+  // Insert symbol, checkmark, tick, cross, or custom image
+  const handleInsertSymbol = (
+    dataUrl: string,
+    width: number,
+    height: number,
+    label?: string,
+    targetPageIndex?: number,
+    applyToAllPages?: boolean
+  ) => {
+    const validPages = pages.filter((p) => !p.isDeleted);
+    const resolvedPageIndex = targetPageIndex !== undefined ? targetPageIndex : activePageIndex;
+
+    if (applyToAllPages && validPages.length > 0) {
+      const newItems: ImageAnnotation[] = validPages.map((page) => {
+        const pW = page.width || 595.28;
+        const pH = page.height || 841.89;
+        return {
+          id: `symbol-${Date.now()}-${page.pageIndex}-${Math.random().toString(36).substring(2, 6)}`,
+          type: 'image',
+          pageIndex: page.pageIndex,
+          x: Math.max(20, Math.round(pW / 2 - width / 2)),
+          y: Math.max(30, Math.round(pH / 3 - height / 2)),
+          width,
+          height,
+          dataUrl,
+          opacity: 1,
+        };
+      });
+
+      const updated = [...annotations, ...newItems];
+      setAnnotations(updated);
+      pushToHistory(updated);
+      if (newItems.length > 0) setSelectedAnnotationId(newItems[0].id);
+    } else {
+      const activePage = pages.find((p) => p.pageIndex === resolvedPageIndex && !p.isDeleted) || validPages[0] || pages[0];
+      const pIdx = activePage ? activePage.pageIndex : 0;
+      const pW = activePage?.width || 595.28;
+      const pH = activePage?.height || 841.89;
+
+      const newImg: ImageAnnotation = {
+        id: `symbol-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        type: 'image',
+        pageIndex: pIdx,
+        x: Math.max(20, Math.round(pW / 2 - width / 2)),
+        y: Math.max(30, Math.round(pH / 3 - height / 2)),
+        width,
+        height,
+        dataUrl,
+        opacity: 1,
+      };
+
+      const updated = [...annotations, newImg];
+      setAnnotations(updated);
+      pushToHistory(updated);
+      setSelectedAnnotationId(newImg.id);
+      setActivePageIndex(pIdx);
+    }
+    setActiveTool('select');
+  };
+
+  // Move an annotation to another page
+  const handleMoveAnnotationToPage = (annId: string, newPageIndex: number) => {
+    const targetPage = pages.find((p) => p.pageIndex === newPageIndex && !p.isDeleted);
+    if (!targetPage) return;
+
+    setAnnotations((prev) => {
+      const updated = prev.map((a) => {
+        if (a.id === annId) {
+          const clampedX = Math.max(10, Math.min((targetPage.width || 595.28) - a.width, a.x));
+          const clampedY = Math.max(10, Math.min((targetPage.height || 841.89) - a.height, a.y));
+          return { ...a, pageIndex: newPageIndex, x: clampedX, y: clampedY };
+        }
+        return a;
+      });
+      pushToHistory(updated);
+      return updated;
+    });
+    setActivePageIndex(newPageIndex);
+  };
+
+  // Transfer annotation by page delta (-1 for previous page, +1 for next page)
+  const handleTransferAnnotationByDelta = (annId: string, delta: number) => {
+    const ann = annotations.find((a) => a.id === annId);
+    if (!ann) return;
+    const validPages = pages.filter((p) => !p.isDeleted);
+    const currentPos = validPages.findIndex((p) => p.pageIndex === ann.pageIndex);
+    if (currentPos === -1) return;
+    const targetPos = currentPos + delta;
+    if (targetPos >= 0 && targetPos < validPages.length) {
+      handleMoveAnnotationToPage(annId, validPages[targetPos].pageIndex);
+    }
+  };
+
+  // Duplicate an annotation to all pages
+  const handleReplicateAnnotationToAllPages = (annId: string) => {
+    const sourceAnn = annotations.find((a) => a.id === annId);
+    if (!sourceAnn) return;
+
+    const validPages = pages.filter((p) => !p.isDeleted);
+    const newAnnotations = [...annotations];
+
+    validPages.forEach((page) => {
+      if (page.pageIndex === sourceAnn.pageIndex) return; // already on this page
+      const cloned: AnyAnnotation = {
+        ...sourceAnn,
+        id: `${sourceAnn.type}-${Date.now()}-${page.pageIndex}-${Math.random().toString(36).substring(2, 6)}`,
+        pageIndex: page.pageIndex,
+      };
+      newAnnotations.push(cloned);
+    });
+
+    setAnnotations(newAnnotations);
+    pushToHistory(newAnnotations);
+  };
+
+  // Direct page insertion helpers for in-page toolbars
+  const handleAddTextToPage = (targetPageIndex: number) => {
+    const targetPage = pages.find((p) => p.pageIndex === targetPageIndex && !p.isDeleted) || pages[0];
+    const pW = targetPage?.width || 595.28;
+    const pH = targetPage?.height || 841.89;
+
+    const newText: TextAnnotation = {
+      id: `text-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      type: 'text',
+      pageIndex: targetPageIndex,
+      x: Math.max(30, Math.round(pW / 2 - 90)),
+      y: Math.max(40, Math.round(pH / 4)),
+      width: 180,
+      height: Math.max(32, textSize * 2.2),
+      text: 'Type text here...',
+      fontSize: textSize,
+      fontFamily: textFont,
+      color: textColor,
+      bold: textBold,
+      italic: textItalic,
+      align: textAlign,
+      backgroundColor: 'transparent',
+    };
+    const updated = [...annotations, newText];
+    setAnnotations(updated);
+    pushToHistory(updated);
+    setSelectedAnnotationId(newText.id);
+    setActiveTool('select');
+    setActivePageIndex(targetPageIndex);
+  };
+
+  const handleAddWhiteoutToPage = (targetPageIndex: number) => {
+    const targetPage = pages.find((p) => p.pageIndex === targetPageIndex && !p.isDeleted) || pages[0];
+    const pW = targetPage?.width || 595.28;
+    const pH = targetPage?.height || 841.89;
+
+    const newWhiteout: WhiteoutAnnotation = {
+      id: `whiteout-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      type: 'whiteout',
+      pageIndex: targetPageIndex,
+      x: Math.max(30, Math.round(pW / 2 - 60)),
+      y: Math.max(40, Math.round(pH / 4)),
+      width: 120,
+      height: 30,
+      fillColor: whiteoutColor,
+    };
+    const updated = [...annotations, newWhiteout];
+    setAnnotations(updated);
+    pushToHistory(updated);
+    setSelectedAnnotationId(newWhiteout.id);
+    setActiveTool('select');
+    setActivePageIndex(targetPageIndex);
+  };
+
+  // Duplicate an annotation
+  const handleDuplicateAnnotation = (annId: string) => {
+    const annToDup = annotations.find((a) => a.id === annId);
+    if (!annToDup) return;
+
+    const newAnn: AnyAnnotation = {
+      ...annToDup,
+      id: `${annToDup.type}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      x: annToDup.x + 15,
+      y: annToDup.y + 15,
+    };
+
+    const updated = [...annotations, newAnn];
+    setAnnotations(updated);
+    pushToHistory(updated);
+    setSelectedAnnotationId(newAnn.id);
+  };
+
+  // Reliable interactive dragging for any annotation with seamless cross-page support
+  const handleStartDragAnnotation = (
+    e: React.PointerEvent | React.MouseEvent,
+    ann: AnyAnnotation,
+    pageW: number,
+    pageH: number
+  ) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setSelectedAnnotationId(ann.id);
+
+    const startClientX = e.clientX;
+    const startClientY = e.clientY;
+    const initialX = ann.x;
+    const initialY = ann.y;
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      moveEvent.preventDefault();
+
+      // Check if cursor moved over another page container
+      const elemUnder = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+      const targetPageElem = elemUnder?.closest('[data-pdf-page-index]') as HTMLElement | null;
+
+      if (targetPageElem) {
+        const targetPageIndex = Number(targetPageElem.getAttribute('data-pdf-page-index'));
+        const stageElem = targetPageElem.querySelector('.page-canvas-stage') as HTMLElement | null;
+
+        if (stageElem) {
+          const stageRect = stageElem.getBoundingClientRect();
+          const targetPageModel = pages.find((p) => p.pageIndex === targetPageIndex);
+          const curTargetW = targetPageModel?.width || 595.28;
+          const curTargetH = targetPageModel?.height || 841.89;
+
+          const relX = (moveEvent.clientX - stageRect.left) / zoom - ann.width / 2;
+          const relY = (moveEvent.clientY - stageRect.top) / zoom - ann.height / 2;
+
+          const clampedX = Math.max(0, Math.min(curTargetW - ann.width, relX));
+          const clampedY = Math.max(0, Math.min(curTargetH - ann.height, relY));
+
+          setAnnotations((prev) =>
+            prev.map((a) =>
+              a.id === ann.id
+                ? {
+                    ...a,
+                    pageIndex: targetPageIndex,
+                    x: Math.round(clampedX),
+                    y: Math.round(clampedY),
+                  }
+                : a
+            )
+          );
+          setActivePageIndex(targetPageIndex);
+          return;
+        }
+      }
+
+      // Fallback within current page
+      const deltaX = (moveEvent.clientX - startClientX) / zoom;
+      const deltaY = (moveEvent.clientY - startClientY) / zoom;
+
+      const newX = Math.max(0, Math.min(pageW - ann.width, initialX + deltaX));
+      const newY = Math.max(0, Math.min(pageH - ann.height, initialY + deltaY));
+
+      setAnnotations((prev) =>
+        prev.map((a) =>
+          a.id === ann.id ? { ...a, x: Math.round(newX), y: Math.round(newY) } : a
+        )
+      );
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      document.body.style.cursor = '';
+      setAnnotations((latest) => {
+        pushToHistory(latest);
+        return latest;
+      });
+    };
+
+    document.body.style.cursor = 'grabbing';
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
+  // Interactive corner resizing
+  const handleStartResize = (
+    e: React.PointerEvent | React.MouseEvent,
+    ann: AnyAnnotation,
+    handle: 'nw' | 'ne' | 'se' | 'sw'
+  ) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const startClientX = e.clientX;
+    const startClientY = e.clientY;
+    const initialX = ann.x;
+    const initialY = ann.y;
+    const initialW = ann.width;
+    const initialH = ann.height;
+    const minSize = 16;
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      moveEvent.preventDefault();
+      const deltaX = (moveEvent.clientX - startClientX) / zoom;
+      const deltaY = (moveEvent.clientY - startClientY) / zoom;
+
+      let newX = initialX;
+      let newY = initialY;
+      let newW = initialW;
+      let newH = initialH;
+
+      if (handle === 'se') {
+        newW = Math.max(minSize, initialW + deltaX);
+        newH = Math.max(minSize, initialH + deltaY);
+      } else if (handle === 'sw') {
+        const potW = initialW - deltaX;
+        if (potW >= minSize) {
+          newX = initialX + deltaX;
+          newW = potW;
+        }
+        newH = Math.max(minSize, initialH + deltaY);
+      } else if (handle === 'ne') {
+        newW = Math.max(minSize, initialW + deltaX);
+        const potH = initialH - deltaY;
+        if (potH >= minSize) {
+          newY = initialY + deltaY;
+          newH = potH;
+        }
+      } else if (handle === 'nw') {
+        const potW = initialW - deltaX;
+        if (potW >= minSize) {
+          newX = initialX + deltaX;
+          newW = potW;
+        }
+        const potH = initialH - deltaY;
+        if (potH >= minSize) {
+          newY = initialY + deltaY;
+          newH = potH;
+        }
+      }
+
+      setAnnotations((prev) =>
+        prev.map((a) =>
+          a.id === ann.id
+            ? {
+                ...a,
+                x: Math.round(newX),
+                y: Math.round(newY),
+                width: Math.round(newW),
+                height: Math.round(newH),
+              }
+            : a
+        )
+      );
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      setAnnotations((latest) => {
+        pushToHistory(latest);
+        return latest;
+      });
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
+  // Keyboard support: Arrow keys nudge, Delete key, Escape to deselect
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!selectedAnnotationId) return;
+
+      const activeEl = document.activeElement;
+      const isInput =
+        activeEl?.tagName === 'INPUT' ||
+        activeEl?.tagName === 'TEXTAREA' ||
+        activeEl?.getAttribute('contenteditable') === 'true';
+
+      if (e.key === 'Escape') {
+        setSelectedAnnotationId(null);
+        return;
+      }
+
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !isInput) {
+        e.preventDefault();
+        handleDeleteSelectedAnnotation();
+        return;
+      }
+
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && !isInput) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 2;
+        setAnnotations((prev) =>
+          prev.map((a) => {
+            if (a.id !== selectedAnnotationId) return a;
+            let dx = 0;
+            let dy = 0;
+            if (e.key === 'ArrowUp') dy = -step;
+            if (e.key === 'ArrowDown') dy = step;
+            if (e.key === 'ArrowLeft') dx = -step;
+            if (e.key === 'ArrowRight') dx = step;
+            return { ...a, x: Math.max(0, a.x + dx), y: Math.max(0, a.y + dy) };
+          })
+        );
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedAnnotationId, annotations]);
+
+  // Quick font size or style update
+  const handleUpdateTextProperty = (annId: string, updates: Partial<TextAnnotation>) => {
+    const updated = annotations.map((a) => (a.id === annId ? { ...a, ...updates } : a));
+    setAnnotations(updated);
+    pushToHistory(updated);
+  };
+
+  // Synchronize active page index with user scroll position
+  useEffect(() => {
+    const container = scrollStageRef.current;
+    if (!container || pages.length === 0) return;
+
+    let isTicking = false;
+    const onScroll = () => {
+      if (!isTicking) {
+        window.requestAnimationFrame(() => {
+          const containerRect = container.getBoundingClientRect();
+          const containerCenterY = containerRect.top + containerRect.height / 2;
+
+          let closestDist = Infinity;
+          let closestPageIndex = activePageIndex;
+
+          pages.forEach((page) => {
+            if (page.isDeleted) return;
+            const pageElem = document.getElementById(`pdf-page-container-${page.pageIndex}`);
+            if (pageElem) {
+              const pageRect = pageElem.getBoundingClientRect();
+              const pageCenterY = pageRect.top + pageRect.height / 2;
+              const dist = Math.abs(pageCenterY - containerCenterY);
+              if (dist < closestDist) {
+                closestDist = dist;
+                closestPageIndex = page.pageIndex;
+              }
+            }
+          });
+
+          if (closestPageIndex !== activePageIndex) {
+            setActivePageIndex(closestPageIndex);
+          }
+          isTicking = false;
+        });
+        isTicking = true;
+      }
+    };
+
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => container.removeEventListener('scroll', onScroll);
+  }, [pages, activePageIndex]);
+
+  // Smooth scroll to target page
+  const scrollToPage = (pageIndex: number) => {
+    const pageElem = document.getElementById(`pdf-page-container-${pageIndex}`);
+    if (pageElem && scrollStageRef.current) {
+      pageElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setActivePageIndex(pageIndex);
+    }
+  };
+
   // Active selected annotation object
   const selectedAnnotation = annotations.find((a) => a.id === selectedAnnotationId);
 
   return (
-    <div id="sejda-pdf-editor-module" className="flex-1 flex flex-col min-w-0 bg-[#0f172a] text-slate-100 min-h-[calc(100vh-4rem)]">
-      {/* 1. SEJDA-STYLE PRIMARY TOP TOOLBAR */}
+    <div id="pdf-editor-module" className="flex-1 flex flex-col min-w-0 bg-[#0f172a] text-slate-100 min-h-[calc(100vh-4rem)]">
+      {/* 1. PRIMARY TOP TOOLBAR */}
       <div className="bg-[#1e293b] border-b border-slate-700/80 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-md shrink-0 z-30">
         {/* Left Brand & File info */}
         <div className="flex items-center gap-2.5">
@@ -454,7 +926,7 @@ export const PdfEditorView: React.FC = () => {
                 PDF Editor
               </span>
               <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold uppercase">
-                Sejda Pro
+                PRO VECTOR EDITOR
               </span>
             </div>
             <span className="text-xs text-slate-400 font-mono truncate max-w-[200px] block">
@@ -463,9 +935,9 @@ export const PdfEditorView: React.FC = () => {
           </div>
         </div>
 
-        {/* Central Sejda Floating Toolset */}
+        {/* Central Floating Toolset */}
         <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-700/80 shadow-inner gap-1 overflow-x-auto max-w-full">
-          {/* Select Tool */}
+          {/* Select & Move Tool */}
           <button
             type="button"
             onClick={() => setActiveTool('select')}
@@ -474,10 +946,10 @@ export const PdfEditorView: React.FC = () => {
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-300 hover:bg-slate-800'
             }`}
-            title="Select & Move Tool"
+            title="Move and Select Annotations"
           >
             <Move className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Select</span>
+            <span>Move &amp; Select</span>
           </button>
 
           {/* Text Tool */}
@@ -495,11 +967,42 @@ export const PdfEditorView: React.FC = () => {
             <span>Text</span>
           </button>
 
+          {/* Symbols, Ticks & Checkboxes Tool */}
+          <button
+            type="button"
+            onClick={() => {
+              setModalTargetPage(activePageIndex);
+              setIsSymbolsModalOpen(true);
+            }}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/30 cursor-pointer"
+            title="Add Ticks, Cross Marks, Checkboxes & Status Badges"
+          >
+            <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Ticks &amp; Symbols</span>
+          </button>
+
+          {/* Add Image Tool */}
+          <button
+            type="button"
+            onClick={() => {
+              setModalTargetPage(activePageIndex);
+              setIsSymbolsModalOpen(true);
+            }}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 text-slate-300 hover:bg-slate-800 transition-all cursor-pointer"
+            title="Upload Custom Image or Stamp"
+          >
+            <ImageIcon className="w-3.5 h-3.5 text-sky-400" />
+            <span className="hidden sm:inline">Add Image</span>
+          </button>
+
           {/* Sign Tool */}
           <button
             type="button"
-            onClick={() => setIsSignatureModalOpen(true)}
-            className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 text-slate-300 hover:bg-slate-800 transition-all"
+            onClick={() => {
+              setModalTargetPage(activePageIndex);
+              setIsSignatureModalOpen(true);
+            }}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 text-slate-300 hover:bg-slate-800 transition-all cursor-pointer"
             title="Draw, type, or upload digital signature"
           >
             <PenTool className="w-3.5 h-3.5 text-amber-400" />
@@ -510,7 +1013,7 @@ export const PdfEditorView: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTool('whiteout')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTool === 'whiteout'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-300 hover:bg-slate-800'
@@ -525,7 +1028,7 @@ export const PdfEditorView: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTool('shape')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTool === 'shape'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-300 hover:bg-slate-800'
@@ -540,7 +1043,7 @@ export const PdfEditorView: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsWatermarkModalOpen(true)}
-            className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 text-slate-300 hover:bg-slate-800 transition-all"
+            className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 text-slate-300 hover:bg-slate-800 transition-all cursor-pointer"
             title="Watermark & Bates Page Numbering"
           >
             <Stamp className="w-3.5 h-3.5 text-indigo-400" />
@@ -550,6 +1053,45 @@ export const PdfEditorView: React.FC = () => {
 
         {/* Right Action Controls */}
         <div className="flex items-center gap-2">
+          {/* Scroll-aware Page Navigator */}
+          {pages.filter((p) => !p.isDeleted).length > 0 && (
+            <div className="flex items-center bg-slate-800/90 rounded-lg border border-slate-700 px-1 py-0.5 text-slate-300 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  const valPages = pages.filter((p) => !p.isDeleted);
+                  const currentIdx = valPages.findIndex((p) => p.pageIndex === activePageIndex);
+                  if (currentIdx > 0) scrollToPage(valPages[currentIdx - 1].pageIndex);
+                }}
+                disabled={pages.filter((p) => !p.isDeleted).findIndex((p) => p.pageIndex === activePageIndex) <= 0}
+                className="p-1 hover:bg-slate-700 disabled:opacity-30 rounded text-slate-300 cursor-pointer"
+                title="Scroll to previous page"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <span className="px-1.5 font-mono text-[11px] font-bold text-emerald-400 select-none">
+                Page {Math.max(1, pages.filter((p) => !p.isDeleted).findIndex((p) => p.pageIndex === activePageIndex) + 1)} of {pages.filter((p) => !p.isDeleted).length}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const valPages = pages.filter((p) => !p.isDeleted);
+                  const currentIdx = valPages.findIndex((p) => p.pageIndex === activePageIndex);
+                  if (currentIdx >= 0 && currentIdx < valPages.length - 1) {
+                    scrollToPage(valPages[currentIdx + 1].pageIndex);
+                  }
+                }}
+                disabled={
+                  pages.filter((p) => !p.isDeleted).findIndex((p) => p.pageIndex === activePageIndex) >=
+                  pages.filter((p) => !p.isDeleted).length - 1
+                }
+                className="p-1 hover:bg-slate-700 disabled:opacity-30 rounded text-slate-300 cursor-pointer"
+                title="Scroll to next page"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
           {/* Zoom Controls */}
           <div className="flex items-center bg-slate-800 rounded-lg border border-slate-700 p-0.5 text-slate-300">
             <button
@@ -593,7 +1135,7 @@ export const PdfEditorView: React.FC = () => {
             <Redo2 className="w-3.5 h-3.5" />
           </button>
 
-          {/* Famous Sejda Green "Apply Changes" Export Button */}
+          {/* Primary "Apply Changes" Export Button */}
           <button
             type="button"
             onClick={handleExportPdf}
@@ -859,7 +1401,11 @@ export const PdfEditorView: React.FC = () => {
         )}
 
         {/* Center Document Stage */}
-        <div className="flex-1 overflow-auto p-4 sm:p-8 flex flex-col items-center bg-[#090d16]">
+        <div
+          ref={scrollStageRef}
+          id="pdf-editor-scroll-stage"
+          className="flex-1 overflow-auto p-4 sm:p-8 flex flex-col items-center bg-[#090d16] scroll-smooth"
+        >
           {pages.length === 0 ? (
             /* EMPTY STATE / WELCOME DROPZONE */
             <div className="max-w-xl w-full my-auto text-center p-8 bg-[#182234] border border-slate-700/80 rounded-3xl shadow-2xl">
@@ -867,7 +1413,7 @@ export const PdfEditorView: React.FC = () => {
                 <GulfWayLogo className="w-10 h-10" />
               </div>
               <h2 className="text-xl font-bold text-white mb-2 tracking-tight">
-                Gulf Way Sejda-Grade PDF Editor
+                Gulf Way Advanced PDF Editor
               </h2>
               <p className="text-xs text-slate-400 max-w-md mx-auto mb-6 leading-relaxed">
                 Edit text inline, add digital signatures, apply whiteout/redaction to censor sensitive WPS numbers, insert shapes, and organize pages directly in your browser.
@@ -920,25 +1466,104 @@ export const PdfEditorView: React.FC = () => {
                   <div
                     key={pageModel.pageIndex}
                     id={`pdf-page-container-${pageModel.pageIndex}`}
-                    className="flex flex-col items-center"
+                    data-pdf-page-index={pageModel.pageIndex}
+                    onPointerDown={() => setActivePageIndex(pageModel.pageIndex)}
+                    className="flex flex-col items-center group/page transition-all"
                   >
-                    {/* Page Control Header (Sejda style: Page number, Rotate, Delete) */}
+                    {/* Page Control & In-Page Quick Editing Ribbon */}
                     <div
-                      className="flex items-center justify-between w-full mb-2 px-3 py-1.5 bg-[#182234] border border-slate-700/80 rounded-xl shadow-xs text-xs text-slate-300"
+                      className={`flex flex-wrap items-center justify-between w-full mb-2 px-3 py-2 border rounded-xl shadow-md text-xs transition-all gap-2 ${
+                        activePageIndex === pageModel.pageIndex
+                          ? 'bg-[#1e293b] border-indigo-500/80 shadow-indigo-500/10'
+                          : 'bg-[#182234] border-slate-700/80 text-slate-300'
+                      }`}
                       style={{ width: `${pageWidth}px`, maxWidth: '100%' }}
                     >
+                      {/* Left: Page Title & Active badge */}
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-white">Page {idx + 1}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {Math.round(pageModel.width)} × {Math.round(pageModel.height)} pt
+                        <span className="font-bold text-white text-sm">Page {idx + 1}</span>
+                        <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">
+                          ({Math.round(pageModel.width)} × {Math.round(pageModel.height)} pt)
                         </span>
+                        {activePageIndex === pageModel.pageIndex ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            Active Page
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setActivePageIndex(pageModel.pageIndex)}
+                            className="text-[10px] text-slate-400 hover:text-white px-2 py-0.5 rounded hover:bg-slate-800 transition-colors cursor-pointer"
+                          >
+                            Set Active
+                          </button>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      {/* Center: In-Page Quick Action Strip (Appears directly on this page) */}
+                      <div className="flex items-center gap-1 bg-slate-900/90 px-2 py-1 rounded-lg border border-slate-700/90 shadow-xs">
+                        <button
+                          type="button"
+                          onClick={() => handleAddTextToPage(pageModel.pageIndex)}
+                          className="px-2 py-1 rounded text-xs font-semibold text-slate-200 hover:bg-slate-800 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Add text to this page"
+                        >
+                          <Type className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>+ Text</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalTargetPage(pageModel.pageIndex);
+                            setIsSymbolsModalOpen(true);
+                          }}
+                          className="px-2 py-1 rounded text-xs font-semibold text-emerald-300 hover:bg-emerald-950/60 flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Add ticks, crosses, checkmarks or symbols to this page"
+                        >
+                          <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>+ Ticks &amp; Symbols</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalTargetPage(pageModel.pageIndex);
+                            setIsSignatureModalOpen(true);
+                          }}
+                          className="px-2 py-1 rounded text-xs font-semibold text-amber-300 hover:bg-amber-950/60 flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Add signature to this page"
+                        >
+                          <PenTool className="w-3.5 h-3.5 text-amber-400" />
+                          <span>+ Sign</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setModalTargetPage(pageModel.pageIndex);
+                            setIsSymbolsModalOpen(true);
+                          }}
+                          className="px-2 py-1 rounded text-xs font-semibold text-sky-300 hover:bg-sky-950/60 flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Add image to this page"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5 text-sky-400" />
+                          <span className="hidden md:inline">+ Image</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAddWhiteoutToPage(pageModel.pageIndex)}
+                          className="px-2 py-1 rounded text-xs font-semibold text-rose-300 hover:bg-rose-950/60 flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Add whiteout / censor block to this page"
+                        >
+                          <Eraser className="w-3.5 h-3.5 text-rose-400" />
+                          <span className="hidden md:inline">+ Whiteout</span>
+                        </button>
+                      </div>
+
+                      {/* Right: Page Organization Controls */}
+                      <div className="flex items-center gap-1.5 text-slate-300">
                         <button
                           type="button"
                           onClick={() => handleRotatePage(pageModel.pageIndex, -90)}
-                          className="p-1 hover:bg-slate-700 rounded text-slate-300"
+                          className="p-1 hover:bg-slate-700 rounded text-slate-300 cursor-pointer"
                           title="Rotate Left 90°"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
@@ -946,7 +1571,7 @@ export const PdfEditorView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleRotatePage(pageModel.pageIndex, 90)}
-                          className="p-1 hover:bg-slate-700 rounded text-slate-300"
+                          className="p-1 hover:bg-slate-700 rounded text-slate-300 cursor-pointer"
                           title="Rotate Right 90°"
                         >
                           <RotateCw className="w-3.5 h-3.5" />
@@ -954,7 +1579,7 @@ export const PdfEditorView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleDuplicatePage(pageModel.pageIndex)}
-                          className="p-1 hover:bg-slate-700 rounded text-slate-300"
+                          className="p-1 hover:bg-slate-700 rounded text-slate-300 cursor-pointer"
                           title="Duplicate Page"
                         >
                           <Copy className="w-3.5 h-3.5" />
@@ -962,7 +1587,7 @@ export const PdfEditorView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleDeletePage(pageModel.pageIndex)}
-                          className="p-1 hover:bg-rose-900/50 hover:text-rose-400 rounded text-slate-400"
+                          className="p-1 hover:bg-rose-900/50 hover:text-rose-400 rounded text-slate-400 cursor-pointer"
                           title="Delete Page"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -972,7 +1597,7 @@ export const PdfEditorView: React.FC = () => {
 
                     {/* Interactive Canvas & Annotation Layer */}
                     <div
-                      className="relative bg-white rounded-lg shadow-2xl overflow-hidden border border-slate-400/20"
+                      className="page-canvas-stage relative bg-white rounded-lg shadow-2xl overflow-hidden border border-slate-400/20"
                       style={{
                         width: `${pageWidth}px`,
                         height: `${pageHeight}px`,
@@ -1001,8 +1626,10 @@ export const PdfEditorView: React.FC = () => {
                           return (
                             <div
                               key={ann.id}
-                              className={`annotation-element absolute cursor-move select-none transition-shadow ${
-                                isSelected ? 'ring-2 ring-indigo-500 shadow-lg' : ''
+                              className={`annotation-element absolute select-none transition-shadow group ${
+                                isSelected
+                                  ? 'ring-2 ring-emerald-500 shadow-xl z-20 cursor-move'
+                                  : 'hover:ring-1 hover:ring-indigo-400/70 z-10 cursor-pointer'
                               }`}
                               style={{
                                 left: `${scaledX}px`,
@@ -1014,7 +1641,245 @@ export const PdfEditorView: React.FC = () => {
                                 e.stopPropagation();
                                 setSelectedAnnotationId(ann.id);
                               }}
+                              onPointerDown={(e) => {
+                                const target = e.target as HTMLElement;
+                                if (
+                                  target.closest('.resize-handle') ||
+                                  target.closest('.no-drag-area') ||
+                                  target.closest('.quick-action-bar')
+                                ) {
+                                  return;
+                                }
+                                handleStartDragAnnotation(e, ann, pageModel.width || 595.28, pageModel.height || 841.89);
+                              }}
                             >
+                              {/* QUICK FLOATING ACTION BAR & DRAG HANDLE (When Selected) */}
+                              {isSelected && (
+                                <div
+                                  className="quick-action-bar absolute -top-9 left-0 flex items-center gap-1 bg-slate-900 border border-slate-700/90 rounded-lg px-2 py-1 shadow-2xl z-40 text-xs whitespace-nowrap"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {/* Dedicated Move Grip */}
+                                  <div
+                                    className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400 font-semibold cursor-grab active:cursor-grabbing hover:bg-slate-700 select-none border border-slate-700/60"
+                                    title="Click and drag to move"
+                                    onPointerDown={(e) => {
+                                      handleStartDragAnnotation(e, ann, pageModel.width || 595.28, pageModel.height || 841.89);
+                                    }}
+                                  >
+                                    <GripHorizontal className="w-3.5 h-3.5" />
+                                    <span className="text-[10px] uppercase font-bold tracking-wider">Move</span>
+                                  </div>
+
+                                  <div className="w-[1px] h-3.5 bg-slate-700 mx-0.5" />
+
+                                  {/* Page Placement & Transfer Dropdown */}
+                                  <div className="flex items-center gap-1 text-[10px]">
+                                    <span className="text-slate-400 font-medium">Page:</span>
+                                    <select
+                                      value={ann.pageIndex}
+                                      onChange={(e) => {
+                                        e.stopPropagation();
+                                        handleMoveAnnotationToPage(ann.id, Number(e.target.value));
+                                      }}
+                                      className="bg-slate-800 border border-slate-700 text-emerald-300 font-bold rounded px-1.5 py-0.5 text-[10px] outline-none cursor-pointer"
+                                      title="Move this element to another page"
+                                    >
+                                      {pages
+                                        .filter((p) => !p.isDeleted)
+                                        .map((p, pIdx) => (
+                                          <option key={p.pageIndex} value={p.pageIndex}>
+                                            Page {pIdx + 1}
+                                          </option>
+                                        ))}
+                                    </select>
+
+                                    {/* Send to Previous Page */}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleTransferAnnotationByDelta(ann.id, -1);
+                                      }}
+                                      disabled={
+                                        pages.filter((p) => !p.isDeleted).findIndex((p) => p.pageIndex === ann.pageIndex) <= 0
+                                      }
+                                      className="p-1 text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-25 rounded transition-colors cursor-pointer"
+                                      title="Move to previous page"
+                                    >
+                                      <ArrowUp className="w-3 h-3" />
+                                    </button>
+
+                                    {/* Send to Next Page */}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleTransferAnnotationByDelta(ann.id, 1);
+                                      }}
+                                      disabled={
+                                        pages.filter((p) => !p.isDeleted).findIndex((p) => p.pageIndex === ann.pageIndex) >=
+                                        pages.filter((p) => !p.isDeleted).length - 1
+                                      }
+                                      className="p-1 text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-25 rounded transition-colors cursor-pointer"
+                                      title="Move to next page"
+                                    >
+                                      <ArrowDown className="w-3 h-3" />
+                                    </button>
+
+                                    {/* Replicate to All Pages */}
+                                    {pages.filter((p) => !p.isDeleted).length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleReplicateAnnotationToAllPages(ann.id);
+                                        }}
+                                        className="flex items-center gap-1 px-1.5 py-0.5 text-emerald-300 hover:bg-emerald-950/60 rounded border border-emerald-500/30 transition-colors cursor-pointer"
+                                        title="Duplicate this symbol/element onto every page"
+                                      >
+                                        <Files className="w-3 h-3 text-emerald-400" />
+                                        <span>All Pages</span>
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <div className="w-[1px] h-3.5 bg-slate-700 mx-0.5" />
+
+                                  {/* Duplicate Button */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDuplicateAnnotation(ann.id);
+                                    }}
+                                    className="p-1 text-slate-300 hover:text-white hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                                    title="Duplicate element"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* Delete Button */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteSelectedAnnotation();
+                                    }}
+                                    className="p-1 text-rose-400 hover:text-rose-300 hover:bg-rose-950/50 rounded transition-colors cursor-pointer"
+                                    title="Delete element"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* If Text: Quick Font Controls */}
+                                  {ann.type === 'text' && (
+                                    <div className="flex items-center gap-1 pl-1 border-l border-slate-700">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleUpdateTextProperty(ann.id, {
+                                            fontSize: Math.max(8, (ann.fontSize || 14) - 2),
+                                          });
+                                        }}
+                                        className="px-1.5 py-0.5 text-slate-300 hover:text-white font-mono text-[10px] bg-slate-800 hover:bg-slate-700 rounded border border-slate-700 cursor-pointer"
+                                        title="Decrease font size"
+                                      >
+                                        A-
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleUpdateTextProperty(ann.id, {
+                                            fontSize: Math.min(72, (ann.fontSize || 14) + 2),
+                                          });
+                                        }}
+                                        className="px-1.5 py-0.5 text-slate-300 hover:text-white font-mono text-[10px] bg-slate-800 hover:bg-slate-700 rounded border border-slate-700 cursor-pointer"
+                                        title="Increase font size"
+                                      >
+                                        A+
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {/* If Symbol / Image / Signature: Quick Size Controls */}
+                                  {(ann.type === 'image' || ann.type === 'signature') && (
+                                    <div className="flex items-center gap-1 pl-1 border-l border-slate-700">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const updated = annotations.map((a) =>
+                                            a.id === ann.id
+                                              ? {
+                                                  ...a,
+                                                  width: Math.max(16, Math.round(a.width * 0.85)),
+                                                  height: Math.max(16, Math.round(a.height * 0.85)),
+                                                }
+                                              : a
+                                          );
+                                          setAnnotations(updated);
+                                          pushToHistory(updated);
+                                        }}
+                                        className="px-1.5 py-0.5 text-slate-300 hover:text-white font-mono text-[10px] bg-slate-800 hover:bg-slate-700 rounded border border-slate-700 cursor-pointer"
+                                        title="Scale down by 15%"
+                                      >
+                                        -15%
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const updated = annotations.map((a) =>
+                                            a.id === ann.id
+                                              ? {
+                                                  ...a,
+                                                  width: Math.round(a.width * 1.15),
+                                                  height: Math.round(a.height * 1.15),
+                                                }
+                                              : a
+                                          );
+                                          setAnnotations(updated);
+                                          pushToHistory(updated);
+                                        }}
+                                        className="px-1.5 py-0.5 text-slate-300 hover:text-white font-mono text-[10px] bg-slate-800 hover:bg-slate-700 rounded border border-slate-700 cursor-pointer"
+                                        title="Scale up by 15%"
+                                      >
+                                        +15%
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* 4 CORNER RESIZE HANDLES (When Selected) */}
+                              {isSelected && (
+                                <>
+                                  <div
+                                    className="resize-handle absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-emerald-600 rounded-xs shadow-md cursor-nwse-resize z-30"
+                                    onPointerDown={(e) => handleStartResize(e, ann, 'nw')}
+                                    title="Resize"
+                                  />
+                                  <div
+                                    className="resize-handle absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-emerald-600 rounded-xs shadow-md cursor-nesw-resize z-30"
+                                    onPointerDown={(e) => handleStartResize(e, ann, 'ne')}
+                                    title="Resize"
+                                  />
+                                  <div
+                                    className="resize-handle absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-emerald-600 rounded-xs shadow-md cursor-nwse-resize z-30"
+                                    onPointerDown={(e) => handleStartResize(e, ann, 'se')}
+                                    title="Resize"
+                                  />
+                                  <div
+                                    className="resize-handle absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-emerald-600 rounded-xs shadow-md cursor-nesw-resize z-30"
+                                    onPointerDown={(e) => handleStartResize(e, ann, 'sw')}
+                                    title="Resize"
+                                  />
+                                </>
+                              )}
+
                               {/* TEXT ANNOTATION */}
                               {ann.type === 'text' && (
                                 <textarea
@@ -1025,7 +1890,10 @@ export const PdfEditorView: React.FC = () => {
                                     );
                                     setAnnotations(updated);
                                   }}
-                                  className="w-full h-full p-1 bg-transparent border-none outline-none resize-none overflow-hidden leading-tight"
+                                  onBlur={() => {
+                                    pushToHistory(annotations);
+                                  }}
+                                  className="no-drag-area w-full h-full p-1 bg-transparent border-none outline-none resize-none overflow-hidden leading-tight cursor-text"
                                   style={{
                                     fontSize: `${ann.fontSize * zoom}px`,
                                     color: ann.color,
@@ -1045,10 +1913,10 @@ export const PdfEditorView: React.FC = () => {
                               {/* WHITEOUT ANNOTATION */}
                               {ann.type === 'whiteout' && (
                                 <div
-                                  className="w-full h-full shadow-xs flex items-center justify-center"
+                                  className="w-full h-full shadow-xs flex items-center justify-center select-none"
                                   style={{
                                     backgroundColor: ann.fillColor,
-                                    border: isSelected ? '1px dashed #6366f1' : 'none',
+                                    border: isSelected ? '1px dashed #10b981' : 'none',
                                   }}
                                 >
                                   {isSelected && (
@@ -1062,7 +1930,7 @@ export const PdfEditorView: React.FC = () => {
                               {/* SHAPE ANNOTATION */}
                               {ann.type === 'shape' && (
                                 <div
-                                  className="w-full h-full"
+                                  className="w-full h-full pointer-events-none select-none"
                                   style={{
                                     borderColor: ann.strokeColor,
                                     borderWidth: `${(ann.strokeWidth || 2) * zoom}px`,
@@ -1077,30 +1945,14 @@ export const PdfEditorView: React.FC = () => {
                                 />
                               )}
 
-                              {/* SIGNATURE / IMAGE */}
+                              {/* SIGNATURE / IMAGE / SYMBOLS / TICKS */}
                               {(ann.type === 'signature' || ann.type === 'image') && (
                                 <img
                                   src={ann.dataUrl}
-                                  alt="Signature"
-                                  className="w-full h-full object-contain pointer-events-none"
+                                  alt="Element"
+                                  className="w-full h-full object-contain pointer-events-none select-none"
+                                  draggable={false}
                                 />
-                              )}
-
-                              {/* SELECTION CONTROLS */}
-                              {isSelected && (
-                                <div className="absolute -top-7 right-0 flex items-center gap-1 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 shadow-md">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteSelectedAnnotation();
-                                    }}
-                                    className="text-rose-400 hover:text-rose-300 p-0.5"
-                                    title="Delete Element"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </button>
-                                </div>
                               )}
                             </div>
                           );
@@ -1119,6 +1971,17 @@ export const PdfEditorView: React.FC = () => {
         isOpen={isSignatureModalOpen}
         onClose={() => setIsSignatureModalOpen(false)}
         onApplySignature={handleApplySignature}
+        pages={pages}
+        activePageIndex={modalTargetPage}
+      />
+
+      {/* SYMBOLS, TICKS & IMAGES MODAL */}
+      <SymbolsImagesModal
+        isOpen={isSymbolsModalOpen}
+        onClose={() => setIsSymbolsModalOpen(false)}
+        onInsertSymbol={handleInsertSymbol}
+        pages={pages}
+        activePageIndex={modalTargetPage}
       />
 
       {/* WATERMARK & BATES MODAL */}

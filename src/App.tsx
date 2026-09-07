@@ -299,7 +299,7 @@ export default function App() {
 
     if (lower.includes('pdf editor') || lower.includes('sejda') || lower.includes('edit pdf') || lower.includes('sign pdf') || lower.includes('redact') || lower.includes('whiteout')) {
       setActiveTab('pdf-editor');
-      showToast('Switched to Sejda-Grade PDF Editor tab.');
+      showToast('Switched to PDF Editor tab.');
       return;
     }
 
@@ -588,7 +588,7 @@ export default function App() {
           /* Image Sizer & Resizer Tab View */
           <ImageSizer />
         ) : activeTab === 'pdf-editor' ? (
-          /* Sejda-Grade PDF Editor Tab View */
+          /* Advanced PDF Editor Tab View */
           <PdfEditorView />
         ) : activeTab === 'wps' ? (
           /* WPS Report Extractor Tab View */

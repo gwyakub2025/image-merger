@@ -141,7 +141,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <span className="whitespace-nowrap">Image Sizer</span>
           </button>
 
-          {/* Module: PDF Editor (Sejda-Grade) */}
+          {/* Module: PDF Editor */}
           <button
             type="button"
             id="tab-pdf-editor-btn"
@@ -155,7 +155,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <FileEdit className="w-3.5 h-3.5 text-emerald-600" />
             <span className="whitespace-nowrap">PDF Editor</span>
             <span className="ml-0.5 text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold">
-              Sejda
+              PRO
             </span>
           </button>
 

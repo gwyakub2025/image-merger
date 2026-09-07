@@ -5,13 +5,17 @@ import { GulfWayLogo } from '../GulfWayLogo';
 interface SignatureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onApplySignature: (dataUrl: string, name?: string) => void;
+  onApplySignature: (dataUrl: string, name?: string, targetPageIndex?: number) => void;
+  pages?: { pageIndex: number; displayNumber?: number; isDeleted?: boolean }[];
+  activePageIndex?: number;
 }
 
 export const SignatureModal: React.FC<SignatureModalProps> = ({
   isOpen,
   onClose,
   onApplySignature,
+  pages = [],
+  activePageIndex = 0,
 }) => {
   const [activeTab, setActiveTab] = useState<'draw' | 'type' | 'upload'>('draw');
   const [typedName, setTypedName] = useState('M. Yakub');
@@ -19,6 +23,14 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
   const [penColor, setPenColor] = useState('#0f172a');
   const [penWidth, setPenWidth] = useState(2.5);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+
+  const [selectedTargetPage, setSelectedTargetPage] = useState<number>(activePageIndex);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedTargetPage(activePageIndex);
+    }
+  }, [isOpen, activePageIndex]);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -179,7 +191,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
     ctx.fillText('✔ CRYPTOGRAPHICALLY SECURED & VERIFIED', 200, 135);
 
     const stampUrl = canvas.toDataURL('image/png');
-    onApplySignature(stampUrl, 'Gulf Way Verified Seal');
+    onApplySignature(stampUrl, 'Gulf Way Verified Seal', selectedTargetPage);
     onClose();
   };
 
@@ -187,16 +199,18 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
     if (activeTab === 'draw') {
       const canvas = canvasRef.current;
       if (!canvas || !hasDrawn) return;
-      onApplySignature(canvas.toDataURL('image/png'));
+      onApplySignature(canvas.toDataURL('image/png'), undefined, selectedTargetPage);
     } else if (activeTab === 'type') {
       const dataUrl = renderTypedSignatureToDataUrl();
-      onApplySignature(dataUrl, typedName);
+      onApplySignature(dataUrl, typedName, selectedTargetPage);
     } else if (activeTab === 'upload') {
       if (!uploadedImage) return;
-      onApplySignature(uploadedImage);
+      onApplySignature(uploadedImage, undefined, selectedTargetPage);
     }
     onClose();
   };
+
+  const validPages = pages.filter((p) => !p.isDeleted);
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
@@ -220,6 +234,24 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Target Page Selection Banner */}
+        {validPages.length > 0 && (
+          <div className="px-6 py-2 bg-indigo-50/70 border-b border-indigo-100 flex items-center justify-between text-xs text-slate-700">
+            <span className="font-semibold text-slate-600">Apply Signature onto:</span>
+            <select
+              value={selectedTargetPage}
+              onChange={(e) => setSelectedTargetPage(Number(e.target.value))}
+              className="bg-white border border-indigo-200 text-indigo-800 font-bold rounded-lg px-2.5 py-1 text-xs outline-none cursor-pointer shadow-2xs"
+            >
+              {validPages.map((p, idx) => (
+                <option key={p.pageIndex} value={p.pageIndex}>
+                  Page {idx + 1} {p.pageIndex === activePageIndex ? '(Currently Active)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Tab Selection */}
         <div className="px-6 pt-4 pb-2 border-b border-slate-100 flex items-center justify-between gap-2">

@@ -181,7 +181,7 @@ export async function createSampleBusinessPdf(): Promise<{
     '',
     '2. DATA RETENTION & REDACTION PROTOCOLS',
     'Sensitive employee identifiers, bank accounts, and corporate IBAN strings are subject to automated or manual',
-    'whiteout redaction before multi-channel dissemination. Use the built-in Sejda-grade editor to inspect and redact.',
+    'whiteout redaction before multi-channel dissemination. Use the built-in advanced editor to inspect and redact.',
   ];
 
   let textY = p1H - 240;
@@ -221,7 +221,7 @@ export async function createSampleBusinessPdf(): Promise<{
     color: rgb(0.4, 0.45, 0.5),
   });
 
-  page1.drawText('Test adding text, whiteout redaction, signing, annotating, and rearranging pages with Sejda-style speed.', {
+  page1.drawText('Test adding text, checkmarks, tick/x marks, whiteout redaction, signing, and rearranging pages easily.', {
     x: 55,
     y: 145,
     size: 9,
@@ -650,7 +650,7 @@ export async function compileAndSaveModifiedPdf(params: {
   if (metadata.author) outDoc.setAuthor(metadata.author);
   if (metadata.subject) outDoc.setSubject(metadata.subject);
   if (metadata.keywords) outDoc.setKeywords(metadata.keywords.split(',').map((s) => s.trim()));
-  outDoc.setProducer('Gulf Way Group Sejda-Grade PDF Editor');
+  outDoc.setProducer('Gulf Way Group Advanced PDF Editor');
 
   const finalPdfBytes = await outDoc.save();
   return new Blob([finalPdfBytes], { type: 'application/pdf' });
