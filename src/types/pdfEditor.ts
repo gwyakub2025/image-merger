@@ -25,6 +25,21 @@ export interface BaseAnnotation {
   rotation?: number;
 }
 
+export interface ExtractedTextLine {
+  id: string;
+  pageIndex: number;
+  text: string;
+  x: number; // in PDF points (top-left)
+  y: number; // in PDF points (top-left)
+  width: number;
+  height: number;
+  fontSize: number;
+  fontFamily: 'Helvetica' | 'Times-Roman' | 'Courier';
+  color: string;
+  bold?: boolean;
+  italic?: boolean;
+}
+
 export interface TextAnnotation extends BaseAnnotation {
   type: 'text';
   text: string;
@@ -35,6 +50,9 @@ export interface TextAnnotation extends BaseAnnotation {
   italic?: boolean;
   align: 'left' | 'center' | 'right';
   backgroundColor?: string;
+  isExistingTextEdit?: boolean;
+  originalText?: string;
+  originalBoundingBox?: { x: number; y: number; width: number; height: number };
 }
 
 export interface LinkAnnotation extends BaseAnnotation {

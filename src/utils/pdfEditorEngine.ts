@@ -3,6 +3,7 @@ import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
 import {
   PdfPageModel,
   AnyAnnotation,
+  ExtractedTextLine,
   PdfHeaderFooterConfig,
   PdfWatermarkConfig,
   PdfMetadataConfig,
@@ -83,6 +84,217 @@ export async function loadPdfDocument(arrayBuffer: ArrayBuffer): Promise<{
   }
 
   return { pages, pdfDocProxy };
+}
+
+/**
+ * Extract and group text content from a PDF.js page proxy into editable text lines (Sejda style)
+ */
+export async function extractPageTextLines(
+  page: any,
+  pageIndex: number
+): Promise<ExtractedTextLine[]> {
+  try {
+    const viewport = page.getViewport({ scale: 1.0 });
+    const textContent = await page.getTextContent();
+    if (!textContent || !textContent.items || textContent.items.length === 0) {
+      return [];
+    }
+
+    const rawItems: {
+      str: string;
+      vx: number;
+      vy: number;
+      width: number;
+      height: number;
+      fontSize: number;
+      fontName: string;
+    }[] = [];
+
+    for (const it of textContent.items) {
+      if (!it.str || it.str.length === 0) continue;
+      const [scaleX, skewY, , , tx, ty] = it.transform;
+      const fontSize = Math.max(7, Math.round(Math.sqrt(scaleX * scaleX + skewY * skewY) || 12));
+      const [vx, vy] = viewport.convertToViewportPoint(tx, ty);
+
+      rawItems.push({
+        str: it.str,
+        vx,
+        vy,
+        width: it.width,
+        height: it.height || fontSize,
+        fontSize,
+        fontName: it.fontName || '',
+      });
+    }
+
+    if (rawItems.length === 0) return [];
+
+    // Sort items top-to-bottom, then left-to-right
+    rawItems.sort((a, b) => {
+      const dy = a.vy - b.vy;
+      if (Math.abs(dy) > 3) return dy;
+      return a.vx - b.vx;
+    });
+
+    const lines: ExtractedTextLine[] = [];
+    let cur: {
+      text: string;
+      x: number;
+      y: number;
+      vy: number;
+      width: number;
+      height: number;
+      fontSize: number;
+      fontName: string;
+    } | null = null;
+
+    for (let idx = 0; idx < rawItems.length; idx++) {
+      const it = rawItems[idx];
+      if (!cur) {
+        cur = {
+          text: it.str,
+          x: it.vx,
+          y: Math.max(0, it.vy - it.fontSize * 0.82),
+          vy: it.vy,
+          width: it.width,
+          height: Math.max(it.height, it.fontSize * 1.25),
+          fontSize: it.fontSize,
+          fontName: it.fontName,
+        };
+      } else {
+        const isSameLine = Math.abs(it.vy - cur.vy) <= Math.max(3, it.fontSize * 0.4);
+        const isNearby = it.vx - (cur.x + cur.width) <= Math.max(25, it.fontSize * 1.8);
+
+        if (isSameLine && isNearby) {
+          const needSpace =
+            !cur.text.endsWith(' ') &&
+            !it.str.startsWith(' ') &&
+            it.vx - (cur.x + cur.width) > 1;
+          cur.text += (needSpace ? ' ' : '') + it.str;
+          cur.width = Math.max(cur.width, it.vx + it.width - cur.x);
+          cur.height = Math.max(cur.height, it.fontSize * 1.25);
+          cur.fontSize = Math.max(cur.fontSize, it.fontSize);
+        } else {
+          // Push finished line
+          if (cur.text.trim().length > 0) {
+            const fontLower = cur.fontName.toLowerCase();
+            const bold =
+              fontLower.includes('bold') ||
+              fontLower.includes('black') ||
+              fontLower.includes('heavy');
+            const italic =
+              fontLower.includes('italic') || fontLower.includes('oblique');
+            let fontFamily: 'Helvetica' | 'Times-Roman' | 'Courier' = 'Helvetica';
+            if (
+              fontLower.includes('times') ||
+              fontLower.includes('serif') ||
+              fontLower.includes('roman')
+            ) {
+              fontFamily = 'Times-Roman';
+            } else if (
+              fontLower.includes('courier') ||
+              fontLower.includes('mono')
+            ) {
+              fontFamily = 'Courier';
+            }
+
+            lines.push({
+              id: `ext-txt-${pageIndex}-${lines.length}-${Math.random().toString(36).substring(2, 6)}`,
+              pageIndex,
+              text: cur.text,
+              x: Math.round(cur.x),
+              y: Math.round(cur.y),
+              width: Math.round(cur.width),
+              height: Math.round(cur.height),
+              fontSize: Math.round(cur.fontSize),
+              fontFamily,
+              color: '#0f172a',
+              bold,
+              italic,
+            });
+          }
+
+          cur = {
+            text: it.str,
+            x: it.vx,
+            y: Math.max(0, it.vy - it.fontSize * 0.82),
+            vy: it.vy,
+            width: it.width,
+            height: Math.max(it.height, it.fontSize * 1.25),
+            fontSize: it.fontSize,
+            fontName: it.fontName,
+          };
+        }
+      }
+    }
+
+    if (cur && cur.text.trim().length > 0) {
+      const fontLower = cur.fontName.toLowerCase();
+      const bold =
+        fontLower.includes('bold') ||
+        fontLower.includes('black') ||
+        fontLower.includes('heavy');
+      const italic =
+        fontLower.includes('italic') || fontLower.includes('oblique');
+      let fontFamily: 'Helvetica' | 'Times-Roman' | 'Courier' = 'Helvetica';
+      if (
+        fontLower.includes('times') ||
+        fontLower.includes('serif') ||
+        fontLower.includes('roman')
+      ) {
+        fontFamily = 'Times-Roman';
+      } else if (
+        fontLower.includes('courier') ||
+        fontLower.includes('mono')
+      ) {
+        fontFamily = 'Courier';
+      }
+
+      lines.push({
+        id: `ext-txt-${pageIndex}-${lines.length}-${Math.random().toString(36).substring(2, 6)}`,
+        pageIndex,
+        text: cur.text,
+        x: Math.round(cur.x),
+        y: Math.round(cur.y),
+        width: Math.round(cur.width),
+        height: Math.round(cur.height),
+        fontSize: Math.round(cur.fontSize),
+        fontFamily,
+        color: '#0f172a',
+        bold,
+        italic,
+      });
+    }
+
+    return lines;
+  } catch (err) {
+    console.warn(`Failed to extract text from page ${pageIndex}:`, err);
+    return [];
+  }
+}
+
+/**
+ * Extract all text lines for all pages in a document proxy
+ */
+export async function extractAllDocumentTextLines(
+  pdfDocProxy: any
+): Promise<{ [pageIndex: number]: ExtractedTextLine[] }> {
+  if (!pdfDocProxy) return {};
+  const result: { [pageIndex: number]: ExtractedTextLine[] } = {};
+  const numPages = pdfDocProxy.numPages;
+
+  for (let i = 1; i <= numPages; i++) {
+    try {
+      const page = await pdfDocProxy.getPage(i);
+      const lines = await extractPageTextLines(page, i - 1);
+      result[i - 1] = lines;
+    } catch (e) {
+      console.warn(`Failed to extract text for page ${i}:`, e);
+      result[i - 1] = [];
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -475,14 +687,27 @@ export async function compileAndSaveModifiedPdf(params: {
           borderWidth: ann.strokeWidth || 0,
         });
       } else if (ann.type === 'text') {
-        // Background color if any
+        // Background color / Whiteout mask to cover underlying PDF text
         if (ann.backgroundColor && ann.backgroundColor !== 'transparent') {
+          // 1. If original bounding box exists, white out the original vector text region
+          if (ann.isExistingTextEdit && ann.originalBoundingBox) {
+            const origPdfY = pH - ann.originalBoundingBox.y - ann.originalBoundingBox.height;
+            pageObj.drawRectangle({
+              x: Math.max(0, ann.originalBoundingBox.x - 2),
+              y: Math.max(0, origPdfY - 2),
+              width: ann.originalBoundingBox.width + 4,
+              height: ann.originalBoundingBox.height + 4,
+              color: hexToPdfRgb(ann.backgroundColor, rgb(1, 1, 1)),
+            });
+          }
+
+          // 2. Also draw background mask for current text box position
           pageObj.drawRectangle({
-            x: ann.x,
-            y: pdfY,
-            width: ann.width,
-            height: ann.height,
-            color: hexToPdfRgb(ann.backgroundColor),
+            x: Math.max(0, ann.x - 2),
+            y: Math.max(0, pdfY - 2),
+            width: ann.width + 4,
+            height: ann.height + 4,
+            color: hexToPdfRgb(ann.backgroundColor, rgb(1, 1, 1)),
           });
         }
 
@@ -494,12 +719,13 @@ export async function compileAndSaveModifiedPdf(params: {
         const textColor = hexToPdfRgb(ann.color, rgb(0, 0, 0));
         // Split multiline text
         const lines = (ann.text || '').split('\n');
-        const lineHeight = ann.fontSize * 1.25;
+        const lineHeight = (ann.fontSize || 12) * 1.25;
 
         lines.forEach((line, lineIdx) => {
-          const lineY = pdfY + ann.height - (lineIdx + 1) * lineHeight + 4;
+          if (!line) return;
+          const lineY = pdfY + ann.height - (lineIdx + 1) * lineHeight + 3;
           pageObj.drawText(line, {
-            x: ann.x + 4,
+            x: ann.x + 3,
             y: lineY,
             size: ann.fontSize || 12,
             font,

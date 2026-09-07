@@ -42,7 +42,10 @@ import {
   Minus,
   ArrowUp,
   ArrowDown,
-  Files
+  Files,
+  Edit3,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import {
   PdfPageModel,
@@ -52,6 +55,7 @@ import {
   ShapeAnnotation,
   ImageAnnotation,
   SignatureAnnotation,
+  ExtractedTextLine,
   PdfHeaderFooterConfig,
   PdfWatermarkConfig,
   PdfMetadataConfig,
@@ -62,7 +66,8 @@ import {
   loadPdfDocument,
   renderPdfPageToCanvas,
   createSampleBusinessPdf,
-  compileAndSaveModifiedPdf
+  compileAndSaveModifiedPdf,
+  extractAllDocumentTextLines
 } from '../../utils/pdfEditorEngine';
 import { SignatureModal } from './SignatureModal';
 import { WatermarkBatesModal } from './WatermarkBatesModal';
@@ -83,6 +88,11 @@ export const PdfEditorView: React.FC = () => {
   const [activeTool, setActiveTool] = useState<PdfEditorTool>('select');
   const [zoom, setZoom] = useState<number>(1.0);
   const [showThumbnails, setShowThumbnails] = useState<boolean>(true);
+
+  // Sejda-Style Existing Text Detection & Inline Editing State
+  const [extractedPageTexts, setExtractedPageTexts] = useState<{ [pageIndex: number]: ExtractedTextLine[] }>({});
+  const [isExtractingText, setIsExtractingText] = useState<boolean>(false);
+  const [showAllTextOutlines, setShowAllTextOutlines] = useState<boolean>(true);
 
   // Annotations
   const [annotations, setAnnotations] = useState<AnyAnnotation[]>([]);
@@ -249,6 +259,33 @@ export const PdfEditorView: React.FC = () => {
       }
     });
   }, [pdfDocProxy, pages, zoom]);
+
+  // Automatically extract and group text lines across all pages whenever the PDF document changes
+  useEffect(() => {
+    if (!pdfDocProxy) {
+      setExtractedPageTexts({});
+      return;
+    }
+
+    let isMounted = true;
+    setIsExtractingText(true);
+    extractAllDocumentTextLines(pdfDocProxy)
+      .then((extracted) => {
+        if (isMounted) {
+          setExtractedPageTexts(extracted);
+        }
+      })
+      .catch((err) => {
+        console.warn('Text extraction error:', err);
+      })
+      .finally(() => {
+        if (isMounted) setIsExtractingText(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [pdfDocProxy]);
 
   // Page interaction: Click to insert or drag to draw
   const handlePageStageClick = (
@@ -618,6 +655,85 @@ export const PdfEditorView: React.FC = () => {
     setActivePageIndex(targetPageIndex);
   };
 
+  // Handle direct click on an existing detected PDF text line (Sejda style)
+  const handleEditExistingText = (line: ExtractedTextLine, pageIndex: number) => {
+    // Check if this line is already actively edited
+    const existingAnn = annotations.find(
+      (a) =>
+        a.pageIndex === pageIndex &&
+        a.type === 'text' &&
+        Math.abs(a.x - line.x) < 8 &&
+        Math.abs(a.y - line.y) < 8
+    );
+    if (existingAnn) {
+      setSelectedAnnotationId(existingAnn.id);
+      setActiveTool('select');
+      return;
+    }
+
+    const targetPage = pages.find((p) => p.pageIndex === pageIndex && !p.isDeleted);
+    const pW = targetPage?.width || 595.28;
+    const pH = targetPage?.height || 841.89;
+
+    // Create a replacing TextAnnotation that sits right over the original text
+    // with an opaque white background to mask the original vector text glyphs
+    const newTextAnn: TextAnnotation = {
+      id: `text-edit-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      type: 'text',
+      pageIndex,
+      x: Math.max(0, Math.min(pW - 40, line.x - 2)),
+      y: Math.max(0, Math.min(pH - 20, line.y - 2)),
+      width: Math.max(line.width + 16, 60),
+      height: Math.max(line.height + 6, Math.round(line.fontSize * 1.35)),
+      text: line.text,
+      fontSize: line.fontSize || 12,
+      fontFamily: line.fontFamily || 'Helvetica',
+      color: line.color || '#0f172a',
+      bold: line.bold || false,
+      italic: line.italic || false,
+      align: 'left',
+      backgroundColor: '#ffffff', // Opaque white completely masks the original text underneath!
+      isExistingTextEdit: true,
+      originalText: line.text,
+      originalBoundingBox: {
+        x: line.x,
+        y: line.y,
+        width: line.width,
+        height: line.height,
+      },
+    };
+
+    const updated = [...annotations, newTextAnn];
+    setAnnotations(updated);
+    pushToHistory(updated);
+    setSelectedAnnotationId(newTextAnn.id);
+    setActiveTool('select');
+    setActivePageIndex(pageIndex);
+  };
+
+  // Erase existing text by converting it into a permanent whiteout redaction
+  const handleEraseExistingTextAnnotation = (annId: string) => {
+    const ann = annotations.find((a) => a.id === annId);
+    if (!ann) return;
+
+    const textAnn = ann as TextAnnotation;
+    const whiteoutAnn: WhiteoutAnnotation = {
+      id: `whiteout-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      type: 'whiteout',
+      pageIndex: ann.pageIndex,
+      x: textAnn.originalBoundingBox?.x ?? ann.x,
+      y: textAnn.originalBoundingBox?.y ?? ann.y,
+      width: textAnn.originalBoundingBox?.width ?? ann.width,
+      height: textAnn.originalBoundingBox?.height ?? ann.height,
+      fillColor: '#ffffff',
+    };
+
+    const updated = annotations.map((a) => (a.id === annId ? whiteoutAnn : a));
+    setAnnotations(updated);
+    pushToHistory(updated);
+    setSelectedAnnotationId(whiteoutAnn.id);
+  };
+
   // Duplicate an annotation
   const handleDuplicateAnnotation = (annId: string) => {
     const annToDup = annotations.find((a) => a.id === annId);
@@ -952,19 +1068,37 @@ export const PdfEditorView: React.FC = () => {
             <span>Move &amp; Select</span>
           </button>
 
-          {/* Text Tool */}
+          {/* Text Tool: Edit Existing & Add New */}
           <button
             type="button"
-            onClick={() => setActiveTool('text')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+            onClick={() => {
+              setActiveTool('text');
+              setShowAllTextOutlines(true);
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTool === 'text'
-                ? 'bg-indigo-600 text-white shadow-xs'
+                ? 'bg-sky-600 text-white shadow-xs'
                 : 'text-slate-300 hover:bg-slate-800'
             }`}
-            title="Add text to document"
+            title="Edit existing PDF text directly (Sejda style) or click anywhere to type new text"
           >
             <Type className="w-3.5 h-3.5" />
-            <span>Text</span>
+            <span>Edit &amp; Add Text</span>
+          </button>
+
+          {/* Detect Text Outlines Toggle */}
+          <button
+            type="button"
+            onClick={() => setShowAllTextOutlines(!showAllTextOutlines)}
+            className={`px-2 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all border cursor-pointer ${
+              showAllTextOutlines
+                ? 'bg-sky-950/60 text-sky-300 border-sky-500/40 shadow-xs'
+                : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-slate-200'
+            }`}
+            title="Toggle outline boxes around all detected existing text lines (Sejda style)"
+          >
+            {showAllTextOutlines ? <Eye className="w-3.5 h-3.5 text-sky-400" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
+            <span className="hidden md:inline">Detect Text</span>
           </button>
 
           {/* Symbols, Ticks & Checkboxes Tool */}
@@ -1155,10 +1289,33 @@ export const PdfEditorView: React.FC = () => {
             Text Properties:
           </span>
 
+          {/* Sejda Inline Edit Guidance Indicator */}
+          {activeTool === 'text' && !selectedAnnotation && (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-sky-950/80 border border-sky-500/40 text-sky-200 text-xs">
+              <Edit3 className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+              <span className="font-semibold text-sky-100">Click any text on the page to edit it</span>
+              <span className="text-sky-300 hidden sm:inline">(or click blank area for new text)</span>
+            </div>
+          )}
+
+          {/* Active Existing Text Edit Indicator */}
+          {selectedAnnotation && selectedAnnotation.type === 'text' && (selectedAnnotation as TextAnnotation).isExistingTextEdit && (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-semibold">
+              <Check className="w-3 h-3 text-emerald-400" />
+              <span>Editing Original Text</span>
+            </div>
+          )}
+
           {/* Font Family */}
           <select
             value={textFont}
-            onChange={(e) => setTextFont(e.target.value as any)}
+            onChange={(e) => {
+              const val = e.target.value as any;
+              setTextFont(val);
+              if (selectedAnnotation && selectedAnnotation.type === 'text') {
+                handleUpdateTextProperty(selectedAnnotation.id, { fontFamily: val });
+              }
+            }}
             className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white"
           >
             <option value="Helvetica">Helvetica (Standard)</option>
@@ -1174,7 +1331,13 @@ export const PdfEditorView: React.FC = () => {
               min={8}
               max={72}
               value={textSize}
-              onChange={(e) => setTextSize(parseInt(e.target.value) || 14)}
+              onChange={(e) => {
+                const s = parseInt(e.target.value) || 14;
+                setTextSize(s);
+                if (selectedAnnotation && selectedAnnotation.type === 'text') {
+                  handleUpdateTextProperty(selectedAnnotation.id, { fontSize: s });
+                }
+              }}
               className="w-14 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white"
             />
           </div>
@@ -1183,15 +1346,29 @@ export const PdfEditorView: React.FC = () => {
           <div className="flex items-center gap-1 bg-slate-800 p-0.5 rounded border border-slate-700">
             <button
               type="button"
-              onClick={() => setTextBold(!textBold)}
-              className={`p-1 rounded ${textBold ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+              onClick={() => {
+                const b = !textBold;
+                setTextBold(b);
+                if (selectedAnnotation && selectedAnnotation.type === 'text') {
+                  handleUpdateTextProperty(selectedAnnotation.id, { bold: b });
+                }
+              }}
+              className={`p-1 rounded cursor-pointer ${textBold ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+              title="Toggle Bold"
             >
               <Bold className="w-3.5 h-3.5" />
             </button>
             <button
               type="button"
-              onClick={() => setTextItalic(!textItalic)}
-              className={`p-1 rounded ${textItalic ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+              onClick={() => {
+                const it = !textItalic;
+                setTextItalic(it);
+                if (selectedAnnotation && selectedAnnotation.type === 'text') {
+                  handleUpdateTextProperty(selectedAnnotation.id, { italic: it });
+                }
+              }}
+              className={`p-1 rounded cursor-pointer ${textItalic ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+              title="Toggle Italic"
             >
               <Italic className="w-3.5 h-3.5" />
             </button>
@@ -1204,11 +1381,17 @@ export const PdfEditorView: React.FC = () => {
               <button
                 key={c}
                 type="button"
-                onClick={() => setTextColor(c)}
-                className={`w-4 h-4 rounded-full border ${
+                onClick={() => {
+                  setTextColor(c);
+                  if (selectedAnnotation && selectedAnnotation.type === 'text') {
+                    handleUpdateTextProperty(selectedAnnotation.id, { color: c });
+                  }
+                }}
+                className={`w-4 h-4 rounded-full border cursor-pointer ${
                   textColor === c ? 'ring-2 ring-indigo-400' : 'border-slate-600'
                 }`}
                 style={{ backgroundColor: c }}
+                title={`Set text color to ${c}`}
               />
             ))}
           </div>
@@ -1217,7 +1400,7 @@ export const PdfEditorView: React.FC = () => {
             <button
               type="button"
               onClick={handleDeleteSelectedAnnotation}
-              className="ml-auto text-rose-400 hover:text-rose-300 flex items-center gap-1 text-xs font-semibold"
+              className="ml-auto text-rose-400 hover:text-rose-300 flex items-center gap-1 text-xs font-semibold cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Delete Element</span>
@@ -1504,12 +1687,25 @@ export const PdfEditorView: React.FC = () => {
                       <div className="flex items-center gap-1 bg-slate-900/90 px-2 py-1 rounded-lg border border-slate-700/90 shadow-xs">
                         <button
                           type="button"
+                          onClick={() => {
+                            setActiveTool('text');
+                            setShowAllTextOutlines(true);
+                            setActivePageIndex(pageModel.pageIndex);
+                          }}
+                          className="px-2 py-1 rounded text-xs font-bold text-sky-300 bg-sky-950/60 hover:bg-sky-900/80 border border-sky-500/40 flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                          title="Click any existing text on this page to edit it directly (Sejda style)"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-sky-400" />
+                          <span>Edit Text</span>
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleAddTextToPage(pageModel.pageIndex)}
                           className="px-2 py-1 rounded text-xs font-semibold text-slate-200 hover:bg-slate-800 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
-                          title="Add text to this page"
+                          title="Add a new blank text box to this page"
                         >
                           <Type className="w-3.5 h-3.5 text-indigo-400" />
-                          <span>+ Text</span>
+                          <span>+ New Text</span>
                         </button>
                         <button
                           type="button"
@@ -1613,6 +1809,50 @@ export const PdfEditorView: React.FC = () => {
                         className="absolute inset-0 pointer-events-none"
                       />
 
+                      {/* Sejda-Style Interactive Existing Text Detection & Inline Editing Layer */}
+                      {extractedPageTexts[pageModel.pageIndex]?.map((line) => {
+                        // If this line is already covered by an annotation, don't show the detector box
+                        const isCovered = annotations.some(
+                          (a) =>
+                            a.pageIndex === pageModel.pageIndex &&
+                            (a.type === 'text' || a.type === 'whiteout') &&
+                            Math.abs(a.x - line.x) < 20 &&
+                            Math.abs(a.y - line.y) < 14
+                        );
+                        if (isCovered) return null;
+
+                        const isHighlighted = showAllTextOutlines || activeTool === 'text';
+
+                        return (
+                          <div
+                            key={line.id}
+                            id={`detected-text-${line.id}`}
+                            className={`absolute transition-all cursor-text rounded-xs group/detected z-10 ${
+                              isHighlighted
+                                ? 'border border-dashed border-sky-400/80 bg-sky-500/10 hover:border-sky-500 hover:bg-sky-500/25 hover:ring-1 hover:ring-sky-400 shadow-xs'
+                                : 'hover:border hover:border-dashed hover:border-sky-400 hover:bg-sky-500/15'
+                            }`}
+                            style={{
+                              left: `${line.x * zoom}px`,
+                              top: `${line.y * zoom}px`,
+                              width: `${Math.max(line.width * zoom, 20)}px`,
+                              height: `${Math.max(line.height * zoom, 12)}px`,
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditExistingText(line, pageModel.pageIndex);
+                            }}
+                            title={`Click to edit text: "${line.text}"`}
+                          >
+                            {/* Hover tooltip indicating Sejda-style direct edit */}
+                            <span className="hidden group-hover/detected:flex items-center gap-1 absolute -top-6 left-0 bg-slate-950/95 text-white text-[10px] font-semibold px-2 py-0.5 rounded shadow-xl whitespace-nowrap z-30 pointer-events-none border border-sky-500/40">
+                              <Edit3 className="w-2.5 h-2.5 text-sky-400" />
+                              Edit: "{line.text.length > 25 ? line.text.substring(0, 25) + '...' : line.text}"
+                            </span>
+                          </div>
+                        );
+                      })}
+
                       {/* Annotations rendered onto this page */}
                       {annotations
                         .filter((a) => a.pageIndex === pageModel.pageIndex)
@@ -1636,6 +1876,7 @@ export const PdfEditorView: React.FC = () => {
                                 top: `${scaledY}px`,
                                 width: `${scaledW}px`,
                                 height: `${scaledH}px`,
+                                backgroundColor: ann.type === 'text' ? (ann.backgroundColor || 'transparent') : undefined,
                               }}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1772,9 +2013,25 @@ export const PdfEditorView: React.FC = () => {
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
 
-                                  {/* If Text: Quick Font Controls */}
+                                  {/* If Text: Quick Inline Font & Style Controls */}
                                   {ann.type === 'text' && (
                                     <div className="flex items-center gap-1 pl-1 border-l border-slate-700">
+                                      {/* Font Family */}
+                                      <select
+                                        value={ann.fontFamily || 'Helvetica'}
+                                        onChange={(e) => {
+                                          e.stopPropagation();
+                                          handleUpdateTextProperty(ann.id, { fontFamily: e.target.value as any });
+                                        }}
+                                        className="bg-slate-800 border border-slate-700 text-slate-200 text-[10px] rounded px-1 py-0.5 outline-none cursor-pointer"
+                                        title="Font Family"
+                                      >
+                                        <option value="Helvetica">Helvetica</option>
+                                        <option value="Times-Roman">Times</option>
+                                        <option value="Courier">Courier</option>
+                                      </select>
+
+                                      {/* Font Size Buttons */}
                                       <button
                                         type="button"
                                         onClick={(e) => {
@@ -1788,6 +2045,7 @@ export const PdfEditorView: React.FC = () => {
                                       >
                                         A-
                                       </button>
+                                      <span className="text-[10px] font-mono text-slate-300 px-0.5">{ann.fontSize || 14}pt</span>
                                       <button
                                         type="button"
                                         onClick={(e) => {
@@ -1800,6 +2058,92 @@ export const PdfEditorView: React.FC = () => {
                                         title="Increase font size"
                                       >
                                         A+
+                                      </button>
+
+                                      {/* Bold */}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleUpdateTextProperty(ann.id, { bold: !ann.bold });
+                                        }}
+                                        className={`p-1 rounded text-[10px] cursor-pointer ${
+                                          ann.bold ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                        }`}
+                                        title="Toggle Bold"
+                                      >
+                                        <Bold className="w-3 h-3" />
+                                      </button>
+
+                                      {/* Italic */}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleUpdateTextProperty(ann.id, { italic: !ann.italic });
+                                        }}
+                                        className={`p-1 rounded text-[10px] cursor-pointer ${
+                                          ann.italic ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                        }`}
+                                        title="Toggle Italic"
+                                      >
+                                        <Italic className="w-3 h-3" />
+                                      </button>
+
+                                      {/* Color Palette */}
+                                      <div className="flex items-center gap-1 pl-1">
+                                        {['#0f172a', '#ffffff', '#dc2626', '#2563eb', '#16a34a'].map((c) => (
+                                          <button
+                                            key={c}
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleUpdateTextProperty(ann.id, { color: c });
+                                            }}
+                                            className={`w-3.5 h-3.5 rounded-full border cursor-pointer ${
+                                              ann.color === c ? 'ring-2 ring-emerald-400' : 'border-slate-600'
+                                            }`}
+                                            style={{ backgroundColor: c }}
+                                            title={`Set color ${c}`}
+                                          />
+                                        ))}
+                                      </div>
+
+                                      {/* Whiteout Mask Toggle */}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const newBg = ann.backgroundColor === '#ffffff' ? 'transparent' : '#ffffff';
+                                          handleUpdateTextProperty(ann.id, { backgroundColor: newBg });
+                                        }}
+                                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors flex items-center gap-1 cursor-pointer ${
+                                          ann.backgroundColor === '#ffffff'
+                                            ? 'bg-white text-slate-950 border-slate-300'
+                                            : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                                        }`}
+                                        title={
+                                          ann.backgroundColor === '#ffffff'
+                                            ? 'Whiteout cover active (masks original PDF text underneath)'
+                                            : 'Click to mask original PDF text with white background'
+                                        }
+                                      >
+                                        <div className="w-2 h-2 bg-white border border-slate-400 rounded-xs" />
+                                        <span>{ann.backgroundColor === '#ffffff' ? 'Masked' : 'Clear'}</span>
+                                      </button>
+
+                                      {/* Erase Original Text Action */}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEraseExistingTextAnnotation(ann.id);
+                                        }}
+                                        className="px-1.5 py-0.5 rounded text-[10px] font-bold text-rose-300 bg-rose-950/60 border border-rose-500/40 hover:bg-rose-900 transition-colors flex items-center gap-1 cursor-pointer"
+                                        title="Permanently erase and whiteout this text block"
+                                      >
+                                        <Eraser className="w-2.5 h-2.5 text-rose-400" />
+                                        <span>Erase</span>
                                       </button>
                                     </div>
                                   )}
@@ -1893,10 +2237,11 @@ export const PdfEditorView: React.FC = () => {
                                   onBlur={() => {
                                     pushToHistory(annotations);
                                   }}
-                                  className="no-drag-area w-full h-full p-1 bg-transparent border-none outline-none resize-none overflow-hidden leading-tight cursor-text"
+                                  className="no-drag-area w-full h-full p-1 border-none outline-none resize-none overflow-hidden leading-tight cursor-text"
                                   style={{
                                     fontSize: `${ann.fontSize * zoom}px`,
                                     color: ann.color,
+                                    backgroundColor: ann.backgroundColor || 'transparent',
                                     fontWeight: ann.bold ? 'bold' : 'normal',
                                     fontStyle: ann.italic ? 'italic' : 'normal',
                                     textAlign: ann.align,
