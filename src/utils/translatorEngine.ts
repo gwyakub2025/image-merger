@@ -97,9 +97,13 @@ function decodeHtml(str: string): string {
 /**
  * Direct browser fallback to Google Translate & Neural API
  */
-async function clientDirectGoogleTranslate(text: string, sourceLang: string, targetLang: string): Promise<string | null> {
+async function clientDirectGoogleTranslateChunk(text: string, sourceLang: string, targetLang: string): Promise<string | null> {
   const clean = text.trim();
   if (!clean) return text;
+  const pageMatch = clean.match(/^---\s*Page\s*(\d+)\s*---$/i);
+  if (pageMatch) {
+    return targetLang === 'ar' ? `--- الصفحة ${pageMatch[1]} ---` : `--- Page ${pageMatch[1]} ---`;
+  }
   const src = sourceLang === 'auto' ? 'auto' : sourceLang;
   const tgt = targetLang;
 
@@ -123,7 +127,7 @@ async function clientDirectGoogleTranslate(text: string, sourceLang: string, tar
   // Attempt 2: Direct MyMemory Neural Translation
   try {
     const pair = `${src === 'auto' ? 'en' : src}|${tgt}`;
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=${encodeURIComponent(pair)}`;
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean.slice(0, 480))}&langpair=${encodeURIComponent(pair)}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (res.ok) {
       const json = await res.json();
@@ -137,6 +141,33 @@ async function clientDirectGoogleTranslate(text: string, sourceLang: string, tar
   }
 
   return null;
+}
+
+async function clientDirectGoogleTranslate(text: string, sourceLang: string, targetLang: string): Promise<string | null> {
+  if (text.length <= 400 && !text.includes('\n')) {
+    return await clientDirectGoogleTranslateChunk(text, sourceLang, targetLang);
+  }
+
+  const lines = text.split('\n');
+  const translatedLines: string[] = new Array(lines.length);
+  const batchSize = 5;
+
+  for (let i = 0; i < lines.length; i += batchSize) {
+    const batch = lines.slice(i, i + batchSize);
+    await Promise.all(
+      batch.map(async (line, idxInBatch) => {
+        const actualIdx = i + idxInBatch;
+        if (!line.trim()) {
+          translatedLines[actualIdx] = '';
+          return;
+        }
+        const res = await clientDirectGoogleTranslateChunk(line, sourceLang, targetLang);
+        translatedLines[actualIdx] = res !== null ? res : line;
+      })
+    );
+  }
+
+  return translatedLines.join('\n');
 }
 
 /**
@@ -246,9 +277,43 @@ export async function extractTextFromDocument(file: File): Promise<string> {
     for (let i = 1; i <= pdfDoc.numPages; i++) {
       const page = await pdfDoc.getPage(i);
       const content = await page.getTextContent();
-      const pageText = content.items
-        .map((item: any) => ('str' in item ? item.str : ''))
-        .join(' ');
+      let lastY: number | null = null;
+      const pageLines: string[] = [];
+      let currentLine = '';
+
+      for (const item of content.items as any[]) {
+        if ('str' in item) {
+          const str = item.str;
+          const currentY = item.transform ? item.transform[5] : null;
+
+          // If vertical Y position shifted significantly, commit the line
+          if (lastY !== null && currentY !== null && Math.abs(currentY - lastY) > 5) {
+            if (currentLine.trim()) {
+              pageLines.push(currentLine.trim());
+            }
+            currentLine = str;
+          } else {
+            currentLine = currentLine ? currentLine + ' ' + str : str;
+          }
+
+          if (item.hasEOL) {
+            if (currentLine.trim()) {
+              pageLines.push(currentLine.trim());
+            }
+            currentLine = '';
+          }
+
+          if (currentY !== null) {
+            lastY = currentY;
+          }
+        }
+      }
+
+      if (currentLine.trim()) {
+        pageLines.push(currentLine.trim());
+      }
+
+      const pageText = pageLines.join('\n');
       if (pageText.trim()) {
         textParts.push(`--- Page ${i} ---\n` + pageText.trim());
       }

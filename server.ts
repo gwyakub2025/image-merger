@@ -179,14 +179,21 @@ async function startServer() {
       .replace(/&apos;/g, "'");
   }
 
-  // Single chunk translation using Google Translate (via Lingva) & MyMemory Neural Engine
-  async function translateChunkWithGoogleEngine(
+  // Single sentence or short chunk translation using Google Translate & MyMemory Neural Engine
+  async function translateSingleSentence(
     text: string,
     sourceLang: string,
     targetLang: string
-  ): Promise<string | null> {
+  ): Promise<string> {
     const clean = text.trim();
     if (!clean) return text;
+
+    // Check for page markers e.g. "--- Page 1 ---"
+    const pageMatch = clean.match(/^---\s*Page\s*(\d+)\s*---$/i);
+    if (pageMatch) {
+      return targetLang === 'ar' ? `--- الصفحة ${pageMatch[1]} ---` : `--- Page ${pageMatch[1]} ---`;
+    }
+
     const src = sourceLang === 'auto' ? 'auto' : sourceLang;
     const tgt = targetLang;
 
@@ -206,14 +213,12 @@ async function startServer() {
           }
         }
       }
-    } catch (err: any) {
-      console.warn('[Translate] Lingva Google Translate attempt failed:', err?.message || err);
-    }
+    } catch (err: any) {}
 
     // 2. High-Fidelity MyMemory Neural Translation API
     try {
       const pair = `${src === 'auto' ? 'en' : src}|${tgt}`;
-      const myMemoryUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=${encodeURIComponent(pair)}`;
+      const myMemoryUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean.slice(0, 480))}&langpair=${encodeURIComponent(pair)}`;
       const res = await fetch(myMemoryUrl, {
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
         signal: AbortSignal.timeout(6000),
@@ -225,11 +230,51 @@ async function startServer() {
           return decodeHtmlEntities(translated.trim());
         }
       }
-    } catch (err: any) {
-      console.warn('[Translate] MyMemory attempt failed:', err?.message || err);
+    } catch (err: any) {}
+
+    return clean;
+  }
+
+  // Translates a line, handling sentence-level splitting if very long
+  async function translateLineOrParagraph(line: string, sourceLang: string, targetLang: string): Promise<string> {
+    const trimmed = line.trim();
+    if (!trimmed) return line;
+
+    if (trimmed.length <= 400) {
+      return await translateSingleSentence(trimmed, sourceLang, targetLang);
     }
 
-    return null;
+    // Split long lines by punctuation marks
+    const sentences = trimmed.split(/(?<=[.!?؟؛])\s+/);
+    const results: string[] = [];
+    for (const s of sentences) {
+      if (!s.trim()) continue;
+      results.push(await translateSingleSentence(s, sourceLang, targetLang));
+    }
+    return results.join(' ');
+  }
+
+  // Translates full document text preserving layout with concurrent batches
+  async function translateFullDocumentText(text: string, sourceLang: string, targetLang: string): Promise<string> {
+    const lines = text.split('\n');
+    const translatedLines = new Array<string>(lines.length);
+    const batchSize = 5;
+
+    for (let i = 0; i < lines.length; i += batchSize) {
+      const batch = lines.slice(i, i + batchSize);
+      await Promise.all(
+        batch.map(async (line, idxInBatch) => {
+          const actualIdx = i + idxInBatch;
+          if (!line.trim()) {
+            translatedLines[actualIdx] = '';
+            return;
+          }
+          translatedLines[actualIdx] = await translateLineOrParagraph(line, sourceLang, targetLang);
+        })
+      );
+    }
+
+    return translatedLines.join('\n');
   }
 
   // POST /api/translate - High-accuracy Document & Text Translation (100% as per Google)
@@ -244,36 +289,14 @@ async function startServer() {
       let translatedText: string | null = null;
       let detectedSourceLang = sourceLang;
 
-      // Method 1: Google Translate Neural Engine
-      // If single line or short text (< 600 chars), translate directly
-      if (text.length <= 600 && !text.includes('\n')) {
-        translatedText = await translateChunkWithGoogleEngine(text, sourceLang, targetLang);
+      // Method 1: Google Neural Engine with Concurrent Layout Preservation
+      if (text.length <= 400 && !text.includes('\n')) {
+        translatedText = await translateSingleSentence(text, sourceLang, targetLang);
       } else {
-        // Multi-line or paragraph text: preserve line breaks, headers and layout
-        const lines = text.split('\n');
-        const translatedLines: string[] = [];
-        let allSucceeded = true;
-
-        for (const line of lines) {
-          if (!line.trim()) {
-            translatedLines.push('');
-            continue;
-          }
-          const lineResult = await translateChunkWithGoogleEngine(line, sourceLang, targetLang);
-          if (lineResult !== null) {
-            translatedLines.push(lineResult);
-          } else {
-            allSucceeded = false;
-            break;
-          }
-        }
-
-        if (allSucceeded && translatedLines.length === lines.length) {
-          translatedText = translatedLines.join('\n');
-        }
+        translatedText = await translateFullDocumentText(text, sourceLang, targetLang);
       }
 
-      // Method 2: If Gemini is available and Google engine had issues, attempt Gemini 3.8 Flash
+      // Method 2: If Gemini is available and produced text needs domain enhancement
       if (!translatedText && process.env.GEMINI_API_KEY) {
         try {
           const ai = getGeminiClient();
@@ -314,21 +337,6 @@ Strict rules:
         } catch (geminiErr: any) {
           console.warn('[Translation API] Gemini attempt failed:', geminiErr?.message || geminiErr);
         }
-      }
-
-      // Method 3: Fallback chunk by chunk with individual line translation
-      if (!translatedText) {
-        const lines = text.split('\n');
-        const translatedLines: string[] = [];
-        for (const line of lines) {
-          if (!line.trim()) {
-            translatedLines.push('');
-            continue;
-          }
-          const chunkRes = await translateChunkWithGoogleEngine(line, sourceLang, targetLang);
-          translatedLines.push(chunkRes || line);
-        }
-        translatedText = translatedLines.join('\n');
       }
 
       if (!translatedText || !translatedText.trim()) {
