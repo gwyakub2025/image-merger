@@ -166,6 +166,91 @@ async function startServer() {
     });
   });
 
+  // POST /api/translate - High-accuracy Document & Text Translation
+  app.post('/api/translate', async (req, res) => {
+    try {
+      const { text, sourceLang = 'auto', targetLang = 'ar', domain = 'general' } = req.body;
+      if (!text || typeof text !== 'string' || !text.trim()) {
+        res.status(400).json({ error: 'A non-empty text string is required for translation.' });
+        return;
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        res.status(503).json({
+          error: 'GEMINI_API_KEY not configured. Falling back to local dictionary.',
+          requiresFallback: true,
+        });
+        return;
+      }
+
+      const ai = getGeminiClient();
+      const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+      let translatedText: string | null = null;
+      let detectedSourceLang = sourceLang;
+
+      const domainInstructions: Record<string, string> = {
+        legal: 'Specialized Legal & Contracts: Use official GCC/UAE legal terminology, formal legal Arabic phrases (حيث أن، بموجب هذا، الطرف الأول، إلخ), preserving statutory citations and numbered clauses.',
+        hr: 'UAE HR, Wages & Labor Law: Use MOHRE compliant terminology, exact designations for wages, allowances, gratuity, WPS, residency, and labor contract clauses.',
+        technical: 'Technical & Engineering: Maintain precise technical terminology, unit conversions, engineering abbreviations, and tabular specifications.',
+        general: 'Executive Business Commercial: Professional, high-register, natural phrasing suited for business correspondence, invoices, and executive reports.',
+      };
+
+      const systemPrompt = `You are an elite certified executive translator specializing in English <-> Arabic and international business document translation for Gulf Way Group.
+Your task is to translate the provided text with 100% semantic, grammatical, and structural accuracy.
+Domain requirement: ${domainInstructions[domain] || domainInstructions['general']}
+
+Strict rules:
+1. Source language: ${sourceLang === 'auto' ? 'Auto-detect source language' : sourceLang}
+2. Target language: ${targetLang}
+3. Preserve all numbers, percentages, dates, codes, currency symbols (e.g. AED, USD, SAR), and table structure exactly.
+4. If the source text contains punctuation, bullet points, line breaks, or paragraphs, maintain the exact same structural layout.
+5. Return ONLY the translated text. Do NOT add meta commentary, explanations, greetings, or introductory phrases like "Here is your translation:".`;
+
+      for (const model of modelsToTry) {
+        try {
+          const response = await ai.models.generateContent({
+            model,
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  { text: `${systemPrompt}\n\nTEXT TO TRANSLATE:\n${text}` },
+                ],
+              },
+            ],
+          });
+
+          const candidate = response.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (candidate && candidate.trim()) {
+            translatedText = candidate.trim();
+            break;
+          }
+        } catch (modelErr: any) {
+          console.warn(`[Translation API] Model ${model} failed:`, modelErr?.message || modelErr);
+        }
+      }
+
+      if (!translatedText) {
+        throw new Error('All translation models failed to return a valid response.');
+      }
+
+      res.json({
+        success: true,
+        translatedText,
+        sourceLang: detectedSourceLang,
+        targetLang,
+        domain,
+      });
+    } catch (error: any) {
+      console.error('[API /api/translate error]:', error);
+      res.status(500).json({
+        error: error?.message || 'Internal translation server error.',
+        requiresFallback: true,
+      });
+    }
+  });
+
   // POST /api/gemini/create-image
   app.post('/api/gemini/create-image', async (req, res) => {
     try {

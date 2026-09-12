@@ -4,7 +4,22 @@ export type OutputFormat = 'jpg' | 'pdf' | 'both';
 export type Layout3Style = 'featured-top' | 'equal-rows' | 'equal-cols';
 export type ImageFilterType = 'none' | 'grayscale' | 'sepia' | 'contrast';
 
-export type ActiveTab = 'batcher' | 'converter' | 'resizer' | 'pdf-editor' | 'wps' | 'sheet-merger';
+export type ActiveTab = 
+  | 'batcher' 
+  | 'converter' 
+  | 'resizer' 
+  | 'pdf-editor' 
+  | 'compressor' 
+  | 'splitter' 
+  | 'translator' 
+  | 'wps' 
+  | 'sheet-merger' 
+  | 'admin';
+
+export * from './types/admin';
+export * from './types/pdfCompressor';
+export * from './types/pdfSplitter';
+export * from './types/translator';
 
 export type WatermarkType = 'text' | 'image';
 export type WatermarkPosition = 'center-diagonal' | 'center' | 'bottom-right' | 'top-right' | 'repeat-pattern';

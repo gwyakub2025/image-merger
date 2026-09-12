@@ -29,6 +29,11 @@ import { DocumentConverterView } from './components/DocumentConverterView';
 import { ImageSizer } from './components/ImageSizer';
 import { PdfEditorView } from './components/pdfEditor/PdfEditorView';
 import { ExternalModuleView } from './components/ExternalModuleView';
+import { AdminDashboard } from './components/admin/AdminDashboard';
+import { PdfCompressorView } from './components/compressor/PdfCompressorView';
+import { PdfSplitterView } from './components/splitter/PdfSplitterView';
+import { TranslatorView } from './components/translator/TranslatorView';
+import { useLanguage } from './i18n/LanguageContext';
 import { Footer } from './components/Footer';
 import { CheckCircle2 } from 'lucide-react';
 
@@ -60,6 +65,7 @@ const DEFAULT_CONFIG: BatchConfig = {
 };
 
 export default function App() {
+  const { isRtl } = useLanguage();
   const [config, setConfig] = useState<BatchConfig>(DEFAULT_CONFIG);
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [batches, setBatches] = useState<BatchSet[]>([]);
@@ -75,7 +81,52 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('batcher');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.toLowerCase();
+      if (hash.startsWith('#admin')) return 'admin';
+      if (hash.startsWith('#pdf-compressor') || hash.startsWith('#compressor')) return 'pdf-compressor';
+      if (hash.startsWith('#pdf-splitter') || hash.startsWith('#splitter')) return 'pdf-splitter';
+      if (hash.startsWith('#translator') || hash.startsWith('#translate')) return 'translator';
+      if (hash.startsWith('#wps')) return 'wps';
+      if (hash.startsWith('#sheet-merger') || hash.startsWith('#merger')) return 'sheet-merger';
+      if (hash.startsWith('#pdf-editor')) return 'pdf-editor';
+      if (hash.startsWith('#resizer')) return 'resizer';
+      if (hash.startsWith('#converter')) return 'converter';
+    }
+    return 'batcher';
+  });
+
+  // Listen for browser navigation / hash change
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash.toLowerCase();
+      if (hash.startsWith('#admin')) {
+        setActiveTab('admin');
+      } else if (hash.startsWith('#pdf-compressor') || hash.startsWith('#compressor')) {
+        setActiveTab('pdf-compressor');
+      } else if (hash.startsWith('#pdf-splitter') || hash.startsWith('#splitter')) {
+        setActiveTab('pdf-splitter');
+      } else if (hash.startsWith('#translator') || hash.startsWith('#translate')) {
+        setActiveTab('translator');
+      } else if (hash.startsWith('#wps')) {
+        setActiveTab('wps');
+      } else if (hash.startsWith('#sheet-merger') || hash.startsWith('#merger')) {
+        setActiveTab('sheet-merger');
+      } else if (hash.startsWith('#pdf-editor')) {
+        setActiveTab('pdf-editor');
+      } else if (hash.startsWith('#resizer')) {
+        setActiveTab('resizer');
+      } else if (hash.startsWith('#converter')) {
+        setActiveTab('converter');
+      } else if (hash.startsWith('#batcher')) {
+        setActiveTab('batcher');
+      }
+    };
+
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   const [progress, setProgress] = useState<ProcessingProgress>({
     total: 0,
@@ -471,8 +522,29 @@ export default function App() {
     }
   };
 
+  if (activeTab === 'admin') {
+    return (
+      <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans flex flex-col selection:bg-indigo-500 selection:text-white">
+        <AdminDashboard
+          onBackToWorkbench={() => {
+            setActiveTab('batcher');
+            window.location.hash = 'batcher';
+          }}
+          onShowToast={showToast}
+        />
+        {/* Global Toast Notification */}
+        {toastMessage && (
+          <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-lg shadow-xl border border-slate-700 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans flex flex-col md:flex-row overflow-x-hidden selection:bg-indigo-500 selection:text-white">
+    <div dir={isRtl ? 'rtl' : 'ltr'} className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans flex flex-col md:flex-row overflow-x-hidden selection:bg-indigo-500 selection:text-white">
       {/* High Density Left Sidebar (Desktop & Mobile Drawer) */}
       <div className={`fixed inset-y-0 left-0 z-50 md:static md:flex transform transition-transform duration-200 ${
         isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
@@ -575,6 +647,15 @@ export default function App() {
               onApplyFilterToBatch={handleApplyFilterToBatch}
             />
           </section>
+        ) : activeTab === 'pdf-compressor' ? (
+          /* Advanced WebAssembly / Client-side PDF Compressor */
+          <PdfCompressorView onShowToast={showToast} />
+        ) : activeTab === 'pdf-splitter' ? (
+          /* Advanced Multi-Mode PDF Splitter & Page Extractor */
+          <PdfSplitterView onShowToast={showToast} />
+        ) : activeTab === 'translator' ? (
+          /* AI + Rule-based High Accuracy English-Arabic Document & Text Translator */
+          <TranslatorView onShowToast={showToast} />
         ) : activeTab === 'converter' ? (
           /* Bidirectional Format Converter Tab View */
           <DocumentConverterView

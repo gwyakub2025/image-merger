@@ -15,10 +15,15 @@ import {
   Maximize2,
   FileBarChart2,
   TableProperties,
-  FileEdit
+  FileEdit,
+  ShieldCheck,
+  Scissors,
+  Languages,
+  Globe
 } from 'lucide-react';
 import { BatchConfig, OutputFormat, ActiveTab } from '../types';
 import { GulfWayLogo } from './GulfWayLogo';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface SidebarProps {
   config: BatchConfig;
@@ -41,30 +46,57 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeTab = 'batcher',
   onSelectTab,
 }) => {
+  const { language, setLanguage, t, isRtl } = useLanguage();
+
   return (
     <aside 
       id="high-density-sidebar"
       className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 select-none z-30"
     >
-      {/* Brand & Title Header */}
-      <div className="p-5 border-b border-slate-100">
-        <div className="flex items-center gap-2.5 mb-1.5">
+      {/* Brand & Title Header with Language Switcher */}
+      <div className="p-5 border-b border-slate-100 space-y-3">
+        <div className="flex items-center gap-2.5">
           <div className="p-1 bg-slate-50 border border-slate-200/80 rounded-xl shadow-2xs flex items-center justify-center shrink-0">
             <GulfWayLogo className="w-7 h-7" />
           </div>
           <div className="flex flex-col min-w-0">
             <span className="font-bold text-sm tracking-tight text-slate-900 truncate">
-              Gulf Way Group
+              {t('app.title')}
             </span>
             <span className="text-[10px] text-slate-400 font-medium">Enterprise Suite</span>
           </div>
           <span className="text-[9px] font-mono px-1.5 py-0.5 bg-indigo-50 text-indigo-700 font-bold rounded ml-auto">
-            v3.0
+            v3.2
           </span>
         </div>
-        <p className="text-[10px] text-slate-400 uppercase font-semibold tracking-widest pl-0.5">
-          Unified Multi-Tool Portal
-        </p>
+
+        {/* Global Language Switcher Button */}
+        <div className="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-lg p-1">
+          <button
+            type="button"
+            onClick={() => setLanguage('en')}
+            className={`flex-1 py-1 rounded text-2xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+              language === 'en'
+                ? 'bg-white text-indigo-700 shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <span>🇬🇧</span>
+            <span>English</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setLanguage('ar')}
+            className={`flex-1 py-1 rounded text-2xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+              language === 'ar'
+                ? 'bg-white text-indigo-700 shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <span>🇦🇪</span>
+            <span>العربية</span>
+          </button>
+        </div>
       </div>
 
       {/* Configuration Navigation */}
@@ -73,13 +105,75 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {onSelectTab && (
           <div className="pb-3 border-b border-slate-100 space-y-1.5">
             <div className="text-[11px] font-bold text-slate-400 uppercase px-2 mb-1 tracking-wider">
-              Tool Module
+              {t('nav.tools', 'Tool Modules')}
             </div>
+
+            {/* 1. PDF Compressor */}
+            <button
+              type="button"
+              id="sidebar-nav-pdf-compressor-btn"
+              onClick={() => onSelectTab('pdf-compressor')}
+              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors cursor-pointer ${
+                activeTab === 'pdf-compressor'
+                  ? 'bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200/80 shadow-2xs'
+                  : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-indigo-600 shrink-0" />
+                <span className="truncate">{t('nav.compressor', 'PDF Compressor')}</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.2 bg-indigo-100 text-indigo-800 font-bold rounded">
+                WASM
+              </span>
+            </button>
+
+            {/* 2. PDF Splitter */}
+            <button
+              type="button"
+              id="sidebar-nav-pdf-splitter-btn"
+              onClick={() => onSelectTab('pdf-splitter')}
+              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors cursor-pointer ${
+                activeTab === 'pdf-splitter'
+                  ? 'bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200/80 shadow-2xs'
+                  : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Scissors className="w-4 h-4 text-indigo-600 shrink-0" />
+                <span className="truncate">{t('nav.splitter', 'PDF Splitter')}</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.2 bg-indigo-100 text-indigo-800 font-bold rounded">
+                9 MODES
+              </span>
+            </button>
+
+            {/* 3. Translator */}
+            <button
+              type="button"
+              id="sidebar-nav-translator-btn"
+              onClick={() => onSelectTab('translator')}
+              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors cursor-pointer ${
+                activeTab === 'translator'
+                  ? 'bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200/80 shadow-2xs'
+                  : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Languages className="w-4 h-4 text-indigo-600 shrink-0" />
+                <span className="truncate">{t('nav.translator', 'Translator')}</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.2 bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold rounded">
+                AR-EN
+              </span>
+            </button>
+
+            {/* 4. A4 Batch Optimizer */}
             <button
               type="button"
               id="sidebar-nav-batcher-btn"
               onClick={() => onSelectTab('batcher')}
-              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors ${
+              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors cursor-pointer ${
                 activeTab === 'batcher'
                   ? 'bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200/80 shadow-2xs'
                   : 'text-slate-600 hover:bg-slate-50 border border-transparent'
@@ -87,7 +181,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-indigo-600 shrink-0" />
-                <span>A4 Batch Optimizer</span>
+                <span>{t('nav.batcher', 'A4 Batch Optimizer')}</span>
               </div>
               {totalImages > 0 && (
                 <span className="text-[10px] font-mono px-1.5 py-0.2 bg-indigo-100 text-indigo-800 font-bold rounded">
@@ -96,11 +190,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
               )}
             </button>
 
+            {/* 5. Format Converter */}
             <button
               type="button"
               id="sidebar-nav-converter-btn"
               onClick={() => onSelectTab('converter')}
-              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors ${
+              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors cursor-pointer ${
                 activeTab === 'converter'
                   ? 'bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200/80 shadow-2xs'
                   : 'text-slate-600 hover:bg-slate-50 border border-transparent'
@@ -108,18 +203,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-2">
                 <ArrowRightLeft className="w-4 h-4 text-indigo-600 shrink-0" />
-                <span>Format Converter</span>
+                <span>{t('nav.converter', 'Format Converter')}</span>
               </div>
               <span className="text-[9px] font-mono px-1.5 py-0.2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded font-bold">
-                NEW
+                BULK
               </span>
             </button>
 
+            {/* 6. Image Sizer */}
             <button
               type="button"
               id="sidebar-nav-resizer-btn"
               onClick={() => onSelectTab('resizer')}
-              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors ${
+              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors cursor-pointer ${
                 activeTab === 'resizer'
                   ? 'bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200/80 shadow-2xs'
                   : 'text-slate-600 hover:bg-slate-50 border border-transparent'
@@ -127,18 +223,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-2">
                 <Maximize2 className="w-4 h-4 text-indigo-600 shrink-0" />
-                <span>Image Sizer</span>
+                <span>{t('nav.resizer', 'Image Sizer')}</span>
               </div>
               <span className="text-[9px] font-mono px-1.5 py-0.2 bg-blue-50 text-blue-700 border border-blue-200 rounded font-bold">
                 CROP
               </span>
             </button>
 
+            {/* 7. PDF Editor */}
             <button
               type="button"
               id="sidebar-nav-pdf-editor-btn"
               onClick={() => onSelectTab('pdf-editor')}
-              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors ${
+              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors cursor-pointer ${
                 activeTab === 'pdf-editor'
                   ? 'bg-emerald-50 text-emerald-800 font-semibold border border-emerald-300/80 shadow-2xs'
                   : 'text-slate-600 hover:bg-slate-50 border border-transparent'
@@ -146,18 +243,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-2">
                 <FileEdit className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="truncate">PDF Editor</span>
+                <span className="truncate">{t('nav.pdfEditor', 'PDF Editor')}</span>
               </div>
               <span className="text-[9px] font-mono px-1.5 py-0.2 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded font-bold">
                 PRO
               </span>
             </button>
 
+            {/* 8. WPS Report Extractor */}
             <button
               type="button"
               id="sidebar-nav-wps-btn"
               onClick={() => onSelectTab('wps')}
-              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors ${
+              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors cursor-pointer ${
                 activeTab === 'wps'
                   ? 'bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200/80 shadow-2xs'
                   : 'text-slate-600 hover:bg-slate-50 border border-transparent'
@@ -165,18 +263,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-2">
                 <FileBarChart2 className="w-4 h-4 text-amber-600 shrink-0" />
-                <span className="truncate">WPS Report Extractor</span>
+                <span className="truncate">{t('nav.wps', 'WPS Report Extractor')}</span>
               </div>
               <span className="text-[9px] font-mono px-1.5 py-0.2 bg-amber-50 text-amber-700 border border-amber-200 rounded font-bold">
                 WPS
               </span>
             </button>
 
+            {/* 9. Vlookup Sheet Merger */}
             <button
               type="button"
               id="sidebar-nav-merger-btn"
               onClick={() => onSelectTab('sheet-merger')}
-              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors ${
+              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors cursor-pointer ${
                 activeTab === 'sheet-merger'
                   ? 'bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200/80 shadow-2xs'
                   : 'text-slate-600 hover:bg-slate-50 border border-transparent'
@@ -184,12 +283,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-2">
                 <TableProperties className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="truncate">Vlookup Sheet Merger</span>
+                <span className="truncate">{t('nav.sheetMerger', 'Vlookup Sheet Merger')}</span>
               </div>
               <span className="text-[9px] font-mono px-1.5 py-0.2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded font-bold">
                 SM
               </span>
             </button>
+
+            {/* 10. Admin Dashboard */}
+            <div className="pt-1 border-t border-slate-100">
+              <button
+                type="button"
+                id="sidebar-nav-admin-btn"
+                onClick={() => onSelectTab('admin')}
+                className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors cursor-pointer ${
+                  activeTab === 'admin'
+                    ? 'bg-purple-50 text-purple-900 font-semibold border border-purple-200 shadow-2xs'
+                    : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-purple-600 shrink-0" />
+                  <span className="truncate">{t('nav.admin', 'Admin Dashboard')}</span>
+                </div>
+                <span className="text-[9px] font-mono px-1.5 py-0.2 bg-purple-100 text-purple-800 border border-purple-200 rounded font-bold">
+                  ADMIN
+                </span>
+              </button>
+            </div>
           </div>
         )}
 

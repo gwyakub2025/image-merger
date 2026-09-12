@@ -15,10 +15,15 @@ import {
   Maximize2,
   FileBarChart2,
   TableProperties,
-  FileEdit
+  FileEdit,
+  ShieldCheck,
+  Scissors,
+  Languages,
+  Globe
 } from 'lucide-react';
 import { BatchConfig, OutputFormat, BatchSet, ActiveTab } from '../types';
 import { GulfWayLogo } from './GulfWayLogo';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface ToolbarProps {
   config: BatchConfig;
@@ -47,6 +52,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   isExporting,
   onToggleSidebar,
 }) => {
+  const { language, setLanguage, t } = useLanguage();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const hasBatches = batches.length > 0;
 
@@ -61,7 +67,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <button
             type="button"
             onClick={onToggleSidebar}
-            className="md:hidden p-1.5 text-slate-500 hover:text-slate-800 rounded-md hover:bg-slate-100"
+            className="md:hidden p-1.5 text-slate-500 hover:text-slate-800 rounded-md hover:bg-slate-100 cursor-pointer"
             title="Toggle Sidebar"
           >
             <Menu className="w-5 h-5" />
@@ -73,13 +79,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 shadow-2xs">
-              Gulf Way Group
+              {t('app.title')}
             </span>
             <h1 className="text-sm font-bold text-slate-800 tracking-tight hidden lg:inline">
-              Active Batch Processor
+              Enterprise Suite
             </h1>
             <span className="hidden xl:inline-block px-1.5 py-0.2 text-[9px] font-mono font-bold uppercase tracking-wider bg-slate-100 text-slate-600 rounded">
-              ISO 216
+              v3.2
             </span>
           </div>
           <p className="text-xs text-slate-500 font-sans hidden sm:block">
@@ -91,19 +97,64 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       {/* Navigation Tabs Switcher */}
       {onSelectTab && (
         <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-2xs shrink-0 overflow-x-auto max-w-full">
+          {/* PDF Compressor */}
+          <button
+            type="button"
+            id="tab-pdf-compressor-btn"
+            onClick={() => onSelectTab('pdf-compressor')}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              activeTab === 'pdf-compressor'
+                ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/60'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="whitespace-nowrap">{t('nav.compressor', 'PDF Compressor')}</span>
+          </button>
+
+          {/* PDF Splitter */}
+          <button
+            type="button"
+            id="tab-pdf-splitter-btn"
+            onClick={() => onSelectTab('pdf-splitter')}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              activeTab === 'pdf-splitter'
+                ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/60'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Scissors className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="whitespace-nowrap">{t('nav.splitter', 'PDF Splitter')}</span>
+          </button>
+
+          {/* Translator */}
+          <button
+            type="button"
+            id="tab-translator-btn"
+            onClick={() => onSelectTab('translator')}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              activeTab === 'translator'
+                ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/60'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Languages className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="whitespace-nowrap">{t('nav.translator', 'Translator')}</span>
+          </button>
+
           {/* A4 Batch Optimizer */}
           <button
             type="button"
             id="tab-a4-batcher-btn"
             onClick={() => onSelectTab('batcher')}
-            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
               activeTab === 'batcher'
                 ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/60'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span className="whitespace-nowrap">A4 Batch</span>
+            <span className="whitespace-nowrap">{t('nav.batcher', 'A4 Batch')}</span>
             {totalImagesCount > 0 && (
               <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-indigo-100 text-indigo-800 font-bold">
                 {totalImagesCount}
@@ -116,14 +167,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             type="button"
             id="tab-format-converter-btn"
             onClick={() => onSelectTab('converter')}
-            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
               activeTab === 'converter'
                 ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/60'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-600" />
-            <span className="whitespace-nowrap">Format Converter</span>
+            <span className="whitespace-nowrap">{t('nav.converter', 'Converter')}</span>
           </button>
 
           {/* Image Sizer */}
@@ -131,14 +182,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             type="button"
             id="tab-image-sizer-btn"
             onClick={() => onSelectTab('resizer')}
-            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
               activeTab === 'resizer'
                 ? 'bg-white text-indigo-700 shadow-xs border border-slate-200/60'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Maximize2 className="w-3.5 h-3.5 text-indigo-600" />
-            <span className="whitespace-nowrap">Image Sizer</span>
+            <span className="whitespace-nowrap">{t('nav.resizer', 'Image Sizer')}</span>
           </button>
 
           {/* Module: PDF Editor */}
@@ -146,14 +197,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             type="button"
             id="tab-pdf-editor-btn"
             onClick={() => onSelectTab('pdf-editor')}
-            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
               activeTab === 'pdf-editor'
                 ? 'bg-white text-emerald-700 shadow-xs border border-slate-200/60'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <FileEdit className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="whitespace-nowrap">PDF Editor</span>
+            <span className="whitespace-nowrap">{t('nav.pdfEditor', 'PDF Editor')}</span>
             <span className="ml-0.5 text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold">
               PRO
             </span>
@@ -164,14 +215,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             type="button"
             id="tab-wps-extractor-btn"
             onClick={() => onSelectTab('wps')}
-            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
               activeTab === 'wps'
                 ? 'bg-white text-amber-700 shadow-xs border border-slate-200/60'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <FileBarChart2 className="w-3.5 h-3.5 text-amber-600" />
-            <span className="whitespace-nowrap">WPS Report Extractor</span>
+            <span className="whitespace-nowrap">{t('nav.wps', 'WPS')}</span>
           </button>
 
           {/* Module 5: Vlookup - Sheet Data Merger */}
@@ -179,20 +230,45 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             type="button"
             id="tab-sheet-merger-btn"
             onClick={() => onSelectTab('sheet-merger')}
-            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
               activeTab === 'sheet-merger'
                 ? 'bg-white text-emerald-700 shadow-xs border border-slate-200/60'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <TableProperties className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="whitespace-nowrap">Vlookup - Sheet Data Merger</span>
+            <span className="whitespace-nowrap">{t('nav.sheetMerger', 'Merger')}</span>
+          </button>
+
+          {/* Module 6: Enterprise Admin Dashboard */}
+          <button
+            type="button"
+            id="tab-admin-dashboard-btn"
+            onClick={() => onSelectTab('admin')}
+            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              activeTab === 'admin'
+                ? 'bg-purple-600 text-white shadow-xs border border-purple-700'
+                : 'text-purple-700 bg-purple-50/80 hover:bg-purple-100 hover:text-purple-900 border border-purple-200'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span className="whitespace-nowrap">{t('nav.admin', 'Admin')}</span>
           </button>
         </div>
       )}
 
       {/* Action Buttons */}
       <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+        {/* Quick Language Toggle */}
+        <button
+          type="button"
+          onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-slate-200 transition-colors cursor-pointer"
+          title="Switch Language / تغيير اللغة"
+        >
+          <Globe className="w-3.5 h-3.5 text-indigo-600" />
+          <span>{language === 'en' ? 'العربية' : 'English'}</span>
+        </button>
         {/* CLEAR ALL button */}
         {hasBatches && (
           <button

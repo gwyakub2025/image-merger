@@ -38,9 +38,11 @@ import {
 } from '../utils/documentConverter';
 import { formatBytes } from '../utils/imageOptimizer';
 import jsPDF from 'jspdf';
+import JSZip from 'jszip';
 import { GulfWayLogo } from './GulfWayLogo';
 import * as XLSX from 'xlsx';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface DocumentConverterViewProps {
   onSendImagesToBatchQueue?: (files: File[]) => void;
@@ -51,6 +53,7 @@ export const DocumentConverterView: React.FC<DocumentConverterViewProps> = ({
   onSendImagesToBatchQueue,
   onSwitchToBatcher,
 }) => {
+  const { t, isRtl } = useLanguage();
   // Selected conversion state
   const [selectedPair, setSelectedPair] = useState<ConversionPair>('pdf-jpg');
   const [direction, setDirection] = useState<ConversionDirection>('forward');
@@ -126,13 +129,8 @@ export const DocumentConverterView: React.FC<DocumentConverterViewProps> = ({
       return;
     }
 
-    if (currentOption.id === 'jpg-to-pdf') {
-      // Allows multiple files
-      setSelectedFiles((prev) => [...prev, ...valid]);
-    } else {
-      // Single master file
-      setSelectedFiles([valid[0]]);
-    }
+    // Support multiple files across all conversion types
+    setSelectedFiles((prev) => [...prev, ...valid]);
   };
 
   // Drag & drop
@@ -328,7 +326,61 @@ export const DocumentConverterView: React.FC<DocumentConverterViewProps> = ({
     setZipDownloadUrl(null);
 
     try {
-      if (currentOption.id === 'pdf-to-jpg') {
+      if (selectedFiles.length > 1 && currentOption.id !== 'jpg-to-pdf') {
+        // Bulk Multi-File Conversion
+        setProgressText(`Converting ${selectedFiles.length} files in bulk...`);
+        const zip = new JSZip();
+        let processedCount = 0;
+
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const file = selectedFiles[i];
+          setProgressText(`Processing file ${i + 1} of ${selectedFiles.length}: ${file.name}...`);
+          setProgressPercent(Math.round(((i + 1) / selectedFiles.length) * 100));
+
+          try {
+            if (currentOption.id === 'pdf-to-jpg') {
+              const pages = await convertPdfToJpg(file, pdfJpgScale);
+              const folder = zip.folder(file.name.replace(/\.[^/.]+$/, ''));
+              for (const p of pages) {
+                folder?.file(p.filename, p.blob);
+              }
+            } else if (currentOption.id === 'pdf-to-excel') {
+              const res = await convertPdfToExcel(file);
+              zip.file(res.filename, res.blob);
+            } else if (currentOption.id === 'excel-to-pdf') {
+              const res = await convertExcelToPdf(file, { companyTitle: 'Gulf Way Group' });
+              zip.file(res.filename, res.blob);
+            } else if (currentOption.id === 'pdf-to-docx') {
+              const res = await convertPdfToDocx(file, { companyTitle: 'Gulf Way Group' });
+              zip.file(res.filename, res.blob);
+            } else if (currentOption.id === 'docx-to-pdf') {
+              const res = await convertDocxToPdf(file, { companyTitle: 'Gulf Way Group' });
+              zip.file(res.filename, res.blob);
+            }
+            processedCount++;
+          } catch (itemErr) {
+            console.error(`Error converting ${file.name}:`, itemErr);
+          }
+        }
+
+        setProgressText('Packaging bulk conversion ZIP archive...');
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const zipUrl = URL.createObjectURL(zipBlob);
+        const zipName = `gulf-way-bulk-${currentOption.id}-${Date.now()}.zip`;
+
+        setZipDownloadUrl(zipUrl);
+        setResult({
+          success: true,
+          message: `Successfully converted ${processedCount} of ${selectedFiles.length} file(s) in bulk.`,
+          filename: zipName,
+          blob: zipBlob,
+          downloadUrl: zipUrl,
+          summary: {
+            pageCount: processedCount,
+            fileSize: zipBlob.size,
+          },
+        });
+      } else if (currentOption.id === 'pdf-to-jpg') {
         setProgressText('Extracting pages from PDF...');
         const pages = await convertPdfToJpg(selectedFiles[0], pdfJpgScale, (cur, tot) => {
           setProgressText(`Rendering page ${cur} of ${tot}...`);
@@ -556,7 +608,7 @@ export const DocumentConverterView: React.FC<DocumentConverterViewProps> = ({
               ref={fileInputRef}
               type="file"
               id="converter-file-input"
-              multiple={currentOption.id === 'jpg-to-pdf'}
+              multiple={true}
               accept={currentOption.mimeAccept}
               className="hidden"
               onChange={handleFileChange}
@@ -579,12 +631,12 @@ export const DocumentConverterView: React.FC<DocumentConverterViewProps> = ({
               </div>
 
               <h3 className="text-sm font-bold text-slate-800 tracking-tight">
-                Drop {currentOption.fromFormat} {currentOption.id === 'jpg-to-pdf' ? 'files' : 'file'} here or click to browse
+                Drop {currentOption.fromFormat} files here or click to browse
               </h3>
 
               <p className="text-xs text-slate-500 mt-1">
                 Accepted: <span className="font-mono text-indigo-600">{currentOption.acceptedExtensions.join(', ')}</span>
-                {currentOption.id === 'jpg-to-pdf' && ' (supports multiple images)'}
+                {' · Bulk multi-upload supported'}
               </p>
 
               <button
