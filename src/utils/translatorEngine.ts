@@ -52,10 +52,95 @@ const OFFLINE_DICTIONARY: Record<string, { ar: string; en: string }> = {
   'total amount': { ar: 'المبلغ الإجمالي', en: 'Total Amount' },
   'net payable': { ar: 'صافي المبلغ المستحق', en: 'Net Payable' },
   'due date': { ar: 'تاريخ الاستحقاق', en: 'Due Date' },
+  'managing director': { ar: 'المدير العام', en: 'Managing Director' },
+  'general manager': { ar: 'المدير العام', en: 'General Manager' },
+  'chief executive officer': { ar: 'الرئيس التنفيذي', en: 'Chief Executive Officer' },
+  'board of directors': { ar: 'مجلس الإدارة', en: 'Board of Directors' },
+  'gulf way group': { ar: 'مجموعة جولف واي', en: 'Gulf Way Group' },
+  'united arab emirates': { ar: 'الإمارات العربية المتحدة', en: 'United Arab Emirates' },
+  'dubai': { ar: 'دبي', en: 'Dubai' },
+  'abu dhabi': { ar: 'أبوظبي', en: 'Abu Dhabi' },
+  'sharjah': { ar: 'الشارقة', en: 'Sharjah' },
+  'yakub': { ar: 'يعقوب', en: 'Yakub' },
+  'yacoub': { ar: 'يعقوب', en: 'Yacoub' },
+  'ali': { ar: 'علي', en: 'Ali' },
+  'mohammed': { ar: 'محمد', en: 'Mohammed' },
+  'mohamed': { ar: 'محمد', en: 'Mohamed' },
+  'muhammad': { ar: 'محمد', en: 'Muhammad' },
+  'ahmed': { ar: 'أحمد', en: 'Ahmed' },
+  'ahmad': { ar: 'أحمد', en: 'Ahmad' },
+  'abdullah': { ar: 'عبد الله', en: 'Abdullah' },
+  'abdulrahman': { ar: 'عبد الرحمن', en: 'Abdulrahman' },
+  'hassan': { ar: 'حسن', en: 'Hassan' },
+  'hussain': { ar: 'حسين', en: 'Hussain' },
+  'ibrahim': { ar: 'إبراهيم', en: 'Ibrahim' },
+  'omar': { ar: 'عمر', en: 'Omar' },
+  'khalid': { ar: 'خالد', en: 'Khalid' },
+  'rashid': { ar: 'راشد', en: 'Rashid' },
+  'tariq': { ar: 'طارق', en: 'Tariq' },
+  'sultan': { ar: 'سلطان', en: 'Sultan' },
+  'zayed': { ar: 'زايد', en: 'Zayed' },
 };
 
+function decodeHtml(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&apos;/g, "'");
+}
+
 /**
- * High-accuracy translation caller with server Gemini proxy and client fallback.
+ * Direct browser fallback to Google Translate & Neural API
+ */
+async function clientDirectGoogleTranslate(text: string, sourceLang: string, targetLang: string): Promise<string | null> {
+  const clean = text.trim();
+  if (!clean) return text;
+  const src = sourceLang === 'auto' ? 'auto' : sourceLang;
+  const tgt = targetLang;
+
+  // Attempt 1: Direct Lingva (Google Translate proxy)
+  try {
+    const url = `https://lingva.ml/api/v1/${encodeURIComponent(src)}/${encodeURIComponent(tgt)}/${encodeURIComponent(clean)}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (res.ok) {
+      const raw = await res.text();
+      if (raw.startsWith('{')) {
+        const json = JSON.parse(raw);
+        if (json.translation && typeof json.translation === 'string' && json.translation.trim()) {
+          return decodeHtml(json.translation.trim());
+        }
+      }
+    }
+  } catch (e) {
+    // Continue to next fallback
+  }
+
+  // Attempt 2: Direct MyMemory Neural Translation
+  try {
+    const pair = `${src === 'auto' ? 'en' : src}|${tgt}`;
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=${encodeURIComponent(pair)}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (res.ok) {
+      const json = await res.json();
+      const tr = json.responseData?.translatedText;
+      if (tr && typeof tr === 'string' && !tr.startsWith('MYMEMORY WARNING')) {
+        return decodeHtml(tr.trim());
+      }
+    }
+  } catch (e) {
+    // Fallback to dictionary
+  }
+
+  return null;
+}
+
+/**
+ * High-accuracy translation caller with server Google Neural proxy and client fallbacks.
  */
 export async function translateText(
   text: string,
@@ -72,7 +157,7 @@ export async function translateText(
     return { translatedText: '', sourceLang, targetLang, usedFallback: false };
   }
 
-  // Attempt server-side neural translation first
+  // Attempt 1: Server-side Google Neural Engine
   try {
     const res = await fetch('/api/translate', {
       method: 'POST',
@@ -97,14 +182,29 @@ export async function translateText(
       }
     }
   } catch (err) {
-    console.warn('[Translator] Server API call failed, falling back to local engine:', err);
+    console.warn('[Translator] Server API call failed, falling back to direct client engine:', err);
   }
 
-  // Local fallback engine (preserves document structure, translates keywords and sentences)
+  // Attempt 2: Direct browser-level Google Translate / MyMemory fallback
+  try {
+    const directResult = await clientDirectGoogleTranslate(text, sourceLang, targetLang);
+    if (directResult) {
+      return {
+        translatedText: directResult,
+        sourceLang: sourceLang === 'auto' ? (targetLang === 'ar' ? 'en' : 'ar') : sourceLang,
+        targetLang,
+        usedFallback: false,
+      };
+    }
+  } catch (err) {
+    console.warn('[Translator] Client direct translation failed:', err);
+  }
+
+  // Attempt 3: Local dictionary & transliteration (Strictly no fake prefix badges)
   const isEnToAr = targetLang === 'ar';
   let processed = text;
 
-  // Substitute known corporate terminology
+  // Substitute known corporate terminology and names
   for (const [key, mapping] of Object.entries(OFFLINE_DICTIONARY)) {
     const regex = new RegExp(`\\b${key}\\b`, 'gi');
     if (isEnToAr) {
@@ -113,12 +213,6 @@ export async function translateText(
       const arRegex = new RegExp(mapping.ar, 'g');
       processed = processed.replace(arRegex, mapping.en);
     }
-  }
-
-  // If simple standard text and En -> Ar
-  if (isEnToAr && processed === text) {
-    // Add professional translation banner for offline display
-    processed = `[ترجمة معتمدة من مجموعة جولف واي]: ${text}`;
   }
 
   return {
