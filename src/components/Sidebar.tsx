@@ -60,9 +60,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <GulfWayLogo className="w-7 h-7" />
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-bold text-sm tracking-tight text-slate-900 truncate">
-              {t('app.title')}
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="font-bold text-sm tracking-tight text-slate-900 truncate">
+                GulfWay
+              </span>
+              <span className="text-[9px] text-[#508EC2] font-semibold">®</span>
+            </div>
             <span className="text-[10px] text-slate-400 font-medium">Enterprise Suite</span>
           </div>
           <span className="text-[9px] font-mono px-1.5 py-0.5 bg-indigo-50 text-indigo-700 font-bold rounded ml-auto">

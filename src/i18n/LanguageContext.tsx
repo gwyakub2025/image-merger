@@ -13,7 +13,8 @@ interface LanguageContextType {
 const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
   en: {
     // Brand & Header
-    'brand.title': 'Gulf Way Group',
+    'brand.title': 'GulfWay Enterprise Suite',
+    'app.title': 'GulfWay Enterprise Suite',
     'brand.subtitle': 'Unified Document & Workplace Suite',
     'brand.enterprise': 'Enterprise Suite',
     'brand.switchLang': 'العربية',
@@ -131,6 +132,8 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'translator.uploadDocHint': 'Upload PDF, DOCX, XLSX, or TXT for structural translation',
     'translator.bilingualCompare': 'Side-by-Side Bilingual Comparison',
     'translator.downloadDoc': 'Download Translated Document',
+    'translator.downloadDocx': 'Download Word (.docx)',
+    'translator.downloadPdf': 'Download PDF (.pdf)',
     'translator.style': 'Domain & Style',
     'translator.style.general': 'General Commercial',
     'translator.style.legal': 'Legal & Contracts',
@@ -143,9 +146,10 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
   },
   ar: {
     // Brand & Header
-    'brand.title': 'مجموعة جولف واي',
+    'brand.title': 'GulfWay Enterprise Suite',
+    'app.title': 'GulfWay Enterprise Suite',
     'brand.subtitle': 'منصة المستندات والإنتاجية المؤسسية الموحدة',
-    'brand.enterprise': 'النظام المؤسسي',
+    'brand.enterprise': 'جلف واي سويت إنتربرايز',
     'brand.switchLang': 'English',
     'brand.activeTools': 'معالج الدفعات والوثائق',
 
@@ -261,6 +265,8 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'translator.uploadDocHint': 'ارفع ملف PDF أو Word أو Excel أو TXT للترجمة مع حفظ التنسيق',
     'translator.bilingualCompare': 'مقارنة ثنائية اللغة جنباً إلى جنب',
     'translator.downloadDoc': 'تنزيل المستند المترجم',
+    'translator.downloadDocx': 'تنزيل ملف وورد (.docx)',
+    'translator.downloadPdf': 'تنزيل ملف PDF (.pdf)',
     'translator.style': 'المجال التخصصي والصياغة',
     'translator.style.general': 'تجاري وإداري عام',
     'translator.style.legal': 'عقود وقانوني رسمي',

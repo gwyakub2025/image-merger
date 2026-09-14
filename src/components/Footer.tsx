@@ -23,7 +23,7 @@ export const Footer: React.FC<FooterProps> = ({
       className="h-10 bg-white border-t border-slate-200 flex items-center px-4 sm:px-8 text-[10px] text-slate-400 justify-between select-none shrink-0"
     >
       <div className="font-mono">
-        &copy; 2026 Gulf Way Group • <span className="text-slate-500 font-sans">Bulk Image Batcher &amp; A4 Optimizer</span>
+        &copy; 2026 GulfWay Enterprise Suite • <span className="text-slate-500 font-sans">A4 Batcher &amp; Workplace Platform</span>
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4 uppercase font-bold font-mono tracking-tight text-slate-500">

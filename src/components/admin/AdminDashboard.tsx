@@ -213,7 +213,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-sm font-bold tracking-tight text-white">
-                  Gulf Way Group • Admin Console
+                  GulfWay Enterprise Suite • Admin Console
                 </h1>
                 <span className="text-[10px] font-mono px-1.5 py-0.2 bg-purple-950 text-purple-300 border border-purple-500/50 rounded font-bold uppercase">
                   ENTERPRISE RBAC

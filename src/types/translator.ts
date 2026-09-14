@@ -43,6 +43,10 @@ export interface DocumentTranslationJob {
   translatedBlob?: Blob;
   downloadUrl?: string;
   downloadFileName?: string;
+  downloadDocxUrl?: string;
+  downloadDocxName?: string;
+  downloadPdfUrl?: string;
+  downloadPdfName?: string;
   progressPercent: number;
   errorMessage?: string;
 }

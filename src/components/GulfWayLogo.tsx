@@ -5,33 +5,93 @@ interface GulfWayLogoProps {
   color?: string;
   size?: number | string;
   title?: string;
+  variant?: 'symbol' | 'horizontal' | 'full';
   withText?: boolean;
   textColor?: string;
+  subtitle?: string;
 }
 
 /**
- * Gulf Way Group Official Pin Logo
- * Matches the official Gulf Way marker emblem:
- * - Upper circular ring with capital 'G' crossbar
- * - Precision left & right horizontal separator slits
- * - Lower body with central stylized 'W' chevron peak
- * - Independent diamond tip at the base
+ * GulfWay Enterprise Suite Official Logo
+ * Exact vector reconstruction of the official GulfWay pin emblem:
+ * - Upper concentric circular loop with integrated 'G' crossbar & clean horizontal slits
+ * - Lower body with smooth stylized 'W' wave apex & inverted chevron base
+ * - Independent precision diamond tip standing at the bottom vertex
+ * - Clean geometric 'GULFWAY®' typography with high-density tracking
  */
 export const GulfWayLogo: React.FC<GulfWayLogoProps> = ({
   className = 'w-7 h-7',
-  color = '#4f8ec2',
+  color,
   size,
-  title = 'Gulf Way Group',
+  title = 'GulfWay Enterprise Suite',
+  variant = 'symbol',
   withText = false,
   textColor = 'text-slate-900',
+  subtitle = 'Enterprise Suite',
 }) => {
+  const isHorizontal = variant === 'horizontal' || withText;
+  const isFull = variant === 'full';
+
   const style = size
     ? { width: typeof size === 'number' ? `${size}px` : size, height: typeof size === 'number' ? `${size}px` : size }
     : undefined;
 
-  const svgElement = (
+  // Render Full Stacked Lockup: Emblem + GULFWAY® Wordmark below
+  if (isFull) {
+    return (
+      <svg
+        viewBox="0 0 500 680"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={`${className} shrink-0`}
+        style={style}
+        role="img"
+        aria-label={title}
+      >
+        <title>{title}</title>
+        <defs>
+          <linearGradient id="gulfwayGradientFull" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#5897CA" />
+            <stop offset="100%" stopColor="#4887BF" />
+          </linearGradient>
+        </defs>
+
+        {/* 1. Upper Loop / Top Arch of the G */}
+        <path
+          d="M 5.5 265 A 245 245 0 1 1 494.5 265 L 285 265 L 285 203 L 402.9 203 A 160 160 0 1 0 90.7 265 Z"
+          fill={color || 'url(#gulfwayGradientFull)'}
+        />
+
+        {/* 2. Middle 'W' Pin Body */}
+        <path
+          d="M 7.8 287 A 245 245 0 0 1 37.1 371.2 L 176 633 L 250 559 L 324 633 L 462.9 371.2 A 245 245 0 0 1 492.2 287 L 405.7 287 C 405.7 347 375 405 330 405 C 288 405 272 307 250 307 C 228 307 212 405 170 405 C 125 405 94.3 347 94.3 287 Z"
+          fill={color || 'url(#gulfwayGradientFull)'}
+        />
+
+        {/* 3. Standalone Diamond Tip */}
+        <polygon
+          points="250,587 324,661 250,739 176,661"
+          fill={color || 'url(#gulfwayGradientFull)'}
+        />
+
+        {/* 4. GULFWAY® Wordmark */}
+        <g fill={color || '#508EC2'} fontFamily="'Montserrat', 'Century Gothic', -apple-system, sans-serif" fontWeight="300">
+          <text x="250" y="860" fontSize="76" textAnchor="middle" letterSpacing="14">
+            GULFWAY
+          </text>
+          <circle cx="472" cy="810" r="8" fill="none" stroke={color || '#508EC2'} strokeWidth="1.8" />
+          <text x="472" y="813" fontSize="10" fontWeight="600" textAnchor="middle" letterSpacing="0">
+            R
+          </text>
+        </g>
+      </svg>
+    );
+  }
+
+  // Symbol Icon (Standard Emblem)
+  const symbolSvg = (
     <svg
-      viewBox="0 0 100 120"
+      viewBox="0 0 500 750"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={`${className} shrink-0`}
@@ -41,83 +101,52 @@ export const GulfWayLogo: React.FC<GulfWayLogoProps> = ({
     >
       <title>{title}</title>
       <defs>
-        {/* Subtle highlight gradient to preserve vibrancy across themes */}
-        <linearGradient id="gulfWayGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#5795ca" />
-          <stop offset="100%" stopColor="#4383b7" />
+        <linearGradient id="gulfwayGradientSymbol" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#5897CA" />
+          <stop offset="100%" stopColor="#4887BF" />
         </linearGradient>
       </defs>
 
       {/* 1. Upper Loop / Top Arch of the G */}
       <path
-        d="M 50 2
-           C 23.5 2 4.2 22.5 4 47
-           L 20.8 47
-           C 21.2 31.8 34.2 19.5 50 19.5
-           C 65.8 19.5 78.8 31.8 79.2 47
-           L 96 47
-           C 95.8 22.5 76.5 2 50 2 Z"
-        fill={color || 'url(#gulfWayGradient)'}
+        d="M 5.5 265 A 245 245 0 1 1 494.5 265 L 285 265 L 285 203 L 402.9 203 A 160 160 0 1 0 90.7 265 Z"
+        fill={color || 'url(#gulfwayGradientSymbol)'}
       />
 
-      {/* 2. G Crossbar on the right */}
+      {/* 2. Middle 'W' Pin Body */}
       <path
-        d="M 59.5 37.5
-           L 96 37.5
-           L 96 47
-           L 59.5 47
-           Z"
-        fill={color || 'url(#gulfWayGradient)'}
+        d="M 7.8 287 A 245 245 0 0 1 37.1 371.2 L 176 633 L 250 559 L 324 633 L 462.9 371.2 A 245 245 0 0 1 492.2 287 L 405.7 287 C 405.7 347 375 405 330 405 C 288 405 272 307 250 307 C 228 307 212 405 170 405 C 125 405 94.3 347 94.3 287 Z"
+        fill={color || 'url(#gulfwayGradientSymbol)'}
       />
 
-      {/* 3. Lower Body with Stylized 'W' Peak & Slits */}
-      {/* 
-        Horizontal slit at y=48 on both left and right sides.
-        The inner curve creates the distinct 'W': dips on the left & right, sharp central apex.
-        At the bottom, it has an inverted chevron cutout (/\) separating it from the diamond.
-      */}
-      <path
-        d="M 4 49.5
-           L 20.8 49.5
-           C 25 61 31.5 64 35.5 64
-           C 39.5 64 45 57 50 52
-           C 55 57 60.5 64 64.5 64
-           C 68.5 64 75 61 79.2 49.5
-           L 96 49.5
-           L 62 86.5
-           L 50 74.5
-           L 38 86.5
-           Z"
-        fill={color || 'url(#gulfWayGradient)'}
-      />
-
-      {/* 4. Standalone Diamond Tip at the bottom point */}
-      <path
-        d="M 50 78
-           L 61.5 89.5
-           L 50 118
-           L 38.5 89.5
-           Z"
-        fill={color || 'url(#gulfWayGradient)'}
+      {/* 3. Standalone Diamond Tip */}
+      <polygon
+        points="250,587 324,661 250,739 176,661"
+        fill={color || 'url(#gulfwayGradientSymbol)'}
       />
     </svg>
   );
 
-  if (!withText) {
-    return svgElement;
+  if (!isHorizontal) {
+    return symbolSvg;
   }
 
+  // Horizontal variant (Emblem + Corporate Wordmark)
   return (
     <div className="flex items-center gap-2.5">
-      {svgElement}
+      {symbolSvg}
       <div className="flex flex-col min-w-0">
-        <span className={`font-bold text-sm tracking-tight leading-none ${textColor} truncate`}>
-          Gulf Way Group
-        </span>
+        <div className="flex items-center gap-1">
+          <span className={`font-bold text-sm tracking-tight leading-none ${textColor} truncate`}>
+            GulfWay
+          </span>
+          <span className="text-[9px] text-[#508EC2] font-semibold tracking-wide">®</span>
+        </div>
         <span className="text-[10px] text-slate-400 font-medium tracking-normal mt-0.5">
-          Enterprise Systems
+          {subtitle}
         </span>
       </div>
     </div>
   );
 };
+

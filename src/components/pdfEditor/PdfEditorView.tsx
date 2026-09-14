@@ -116,7 +116,7 @@ export const PdfEditorView: React.FC = () => {
   // Header, Footer & Watermark
   const [headerFooter, setHeaderFooter] = useState<PdfHeaderFooterConfig>({
     enabled: false,
-    headerLeft: 'Gulf Way Group',
+    headerLeft: 'GulfWay Enterprise Suite',
     headerCenter: '',
     headerRight: 'CONFIDENTIAL',
     footerLeft: '',
@@ -130,20 +130,20 @@ export const PdfEditorView: React.FC = () => {
   const [watermark, setWatermark] = useState<PdfWatermarkConfig>({
     enabled: false,
     type: 'text',
-    text: 'GULF WAY GROUP',
+    text: 'GULFWAY ENTERPRISE SUITE',
     opacity: 0.15,
     rotationAngle: -45,
     fontSize: 42,
-    color: '#4f8ec2',
+    color: '#508ec2',
     allPages: true,
   });
 
   const [metadata, setMetadata] = useState<PdfMetadataConfig>({
-    title: 'Gulf Way Document',
-    author: 'Gulf Way Group',
+    title: 'GulfWay Document',
+    author: 'GulfWay Enterprise Suite',
     subject: 'WPS & Operations',
-    keywords: 'Gulf Way, WPS, PDF',
-    creator: 'Gulf Way Advanced PDF Editor',
+    keywords: 'GulfWay, Enterprise, PDF',
+    creator: 'GulfWay Enterprise Suite PDF Editor',
   });
 
   // Modals
@@ -1596,7 +1596,7 @@ export const PdfEditorView: React.FC = () => {
                 <GulfWayLogo className="w-10 h-10" />
               </div>
               <h2 className="text-xl font-bold text-white mb-2 tracking-tight">
-                Gulf Way Advanced PDF Editor
+                GulfWay Enterprise Suite PDF Editor
               </h2>
               <p className="text-xs text-slate-400 max-w-md mx-auto mb-6 leading-relaxed">
                 Edit text inline, add digital signatures, apply whiteout/redaction to censor sensitive WPS numbers, insert shapes, and organize pages directly in your browser.

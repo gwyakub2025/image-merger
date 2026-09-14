@@ -46,7 +46,7 @@ const DEFAULT_CONFIG: BatchConfig = {
   maxDimension: 1920,
   showCaptions: true,
   showPageNumbers: true,
-  pageHeaderTitle: 'Gulf Way Group',
+  pageHeaderTitle: 'GulfWay Enterprise Suite',
   outputFormat: 'pdf',
   backgroundColor: '#FFFFFF',
   marginMm: 12,
@@ -54,7 +54,7 @@ const DEFAULT_CONFIG: BatchConfig = {
   watermark: {
     enabled: false,
     type: 'text',
-    text: 'GULF WAY GROUP',
+    text: 'GULFWAY ENTERPRISE SUITE',
     fontSize: 54,
     opacity: 0.16,
     color: '#334155',
@@ -676,7 +676,7 @@ export default function App() {
           <ExternalModuleView
             id="wps-report-extractor"
             title="WPS Report Extractor"
-            subtitle="Gulf Way Group Automated Wages Protection System (WPS) & SIF File Processor"
+            subtitle="GulfWay Enterprise Suite Automated Wages Protection System (WPS) & SIF File Processor"
             url="https://gulfway-wps.vercel.app/"
             iconType="wps"
             tag="WPS 2.0"
@@ -693,7 +693,7 @@ export default function App() {
           <ExternalModuleView
             id="vlookup-sheet-data-merger"
             title="Vlookup - Sheet Data Merger"
-            subtitle="Gulf Way Group High-Speed Multi-Sheet & Column Data Merger"
+            subtitle="GulfWay Enterprise Suite High-Speed Multi-Sheet & Column Data Merger"
             url="https://gulfway-sm.vercel.app/"
             iconType="merger"
             tag="DATA MERGER"

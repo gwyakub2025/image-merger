@@ -97,11 +97,11 @@ export async function compressPdfFile(
   // Strip or set clean metadata if requested
   if (removeMetadata) {
     newPdf.setTitle('');
-    newPdf.setAuthor('Gulf Way Group Compressed');
+    newPdf.setAuthor('GulfWay Enterprise Suite');
     newPdf.setSubject('');
     newPdf.setKeywords([]);
-    newPdf.setProducer('Gulf Way Group Optimization Engine');
-    newPdf.setCreator('Gulf Way Tools Client Optimizer');
+    newPdf.setProducer('GulfWay Enterprise Suite Optimization Engine');
+    newPdf.setCreator('GulfWay Enterprise Suite Client Optimizer');
   }
 
   for (let pageNum = 1; pageNum <= numPages; pageNum++) {
@@ -190,7 +190,7 @@ export async function compressPdfFile(
       if (removeMetadata) {
         fallbackDoc.setTitle('');
         fallbackDoc.setAuthor('');
-        fallbackDoc.setProducer('Gulf Way Group');
+        fallbackDoc.setProducer('GulfWay Enterprise Suite');
       }
       const strippedBytes = await fallbackDoc.save({ useObjectStreams: true });
       if (strippedBytes.length < compressedSize) {

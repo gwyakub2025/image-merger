@@ -27,7 +27,9 @@ import {
   SUPPORTED_LANGUAGES, 
   translateText, 
   extractTextFromDocument, 
-  exportTranslatedFile 
+  exportTranslatedFile,
+  exportTranslatedDocx,
+  exportTranslatedPdf
 } from '../../utils/translatorEngine';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { formatBytes } from '../../utils/imageOptimizer';
@@ -144,9 +146,12 @@ export const TranslatorView: React.FC<TranslatorViewProps> = ({ onShowToast }) =
       // Step 2: Translate via high-accuracy engine
       const res = await translateText(extractedText, sourceLang, targetLang, domain);
 
-      // Step 3: Package translated file for download
-      const exported = await exportTranslatedFile(file.name, res.translatedText, targetLang);
-      const downloadUrl = URL.createObjectURL(exported.blob);
+      // Step 3: Package translated file for download in both Word (.docx) and PDF (.pdf)
+      const exportedDocx = await exportTranslatedDocx(file.name, res.translatedText, targetLang);
+      const downloadDocxUrl = URL.createObjectURL(exportedDocx.blob);
+
+      const exportedPdf = await exportTranslatedPdf(file.name, res.translatedText, targetLang);
+      const downloadPdfUrl = URL.createObjectURL(exportedPdf.blob);
 
       setDocJob((prev) =>
         prev
@@ -154,15 +159,19 @@ export const TranslatorView: React.FC<TranslatorViewProps> = ({ onShowToast }) =
               ...prev,
               status: 'completed',
               translatedText: res.translatedText,
-              translatedBlob: exported.blob,
-              downloadUrl,
-              downloadFileName: exported.filename,
+              translatedBlob: exportedDocx.blob,
+              downloadUrl: downloadDocxUrl,
+              downloadFileName: exportedDocx.filename,
+              downloadDocxUrl,
+              downloadDocxName: exportedDocx.filename,
+              downloadPdfUrl,
+              downloadPdfName: exportedPdf.filename,
               progressPercent: 100,
             }
           : null
       );
 
-      onShowToast?.('Document translated successfully with layout preservation!');
+      onShowToast?.('Document translated successfully! Ready for download in Word (.docx) & PDF (.pdf).');
     } catch (err: any) {
       setDocJob((prev) =>
         prev
@@ -179,15 +188,33 @@ export const TranslatorView: React.FC<TranslatorViewProps> = ({ onShowToast }) =
     }
   };
 
-  // Download translated document
-  const handleDownloadDoc = () => {
-    if (!docJob?.downloadUrl) return;
+  // Download translated document as Word (.docx)
+  const handleDownloadDocx = () => {
+    const url = docJob?.downloadDocxUrl || docJob?.downloadUrl;
+    if (!url) return;
     const a = document.createElement('a');
-    a.href = docJob.downloadUrl;
-    a.download = docJob.downloadFileName || `translated_${docJob.name}`;
+    a.href = url;
+    a.download = docJob?.downloadDocxName || docJob?.downloadFileName || `translated_${docJob?.name || 'document'}.docx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  };
+
+  // Download translated document as PDF (.pdf)
+  const handleDownloadPdf = () => {
+    const url = docJob?.downloadPdfUrl;
+    if (!url) return;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = docJob?.downloadPdfName || `translated_${docJob?.name?.replace(/\.[^/.]+$/, '') || 'document'}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  // Generic download fallback
+  const handleDownloadDoc = () => {
+    handleDownloadDocx();
   };
 
   return (
@@ -472,14 +499,26 @@ export const TranslatorView: React.FC<TranslatorViewProps> = ({ onShowToast }) =
 
                 <div className="flex items-center gap-2">
                   {docJob.status === 'completed' && (
-                    <button
-                      type="button"
-                      onClick={handleDownloadDoc}
-                      className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <Download className="w-4 h-4" />
-                      {t('translator.downloadDoc')}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDownloadDocx}
+                        className="px-3.5 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                        title="Download formatted Word document (.docx)"
+                      >
+                        <FileText className="w-4 h-4 text-blue-100" />
+                        {t('translator.downloadDocx')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDownloadPdf}
+                        className="px-3.5 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                        title="Download print-ready PDF document (.pdf)"
+                      >
+                        <Download className="w-4 h-4 text-emerald-100" />
+                        {t('translator.downloadPdf')}
+                      </button>
+                    </div>
                   )}
                   {docJob.status !== 'completed' && docJob.status !== 'failed' && (
                     <div className="flex items-center gap-2 text-xs font-semibold text-indigo-600">
@@ -503,9 +542,24 @@ export const TranslatorView: React.FC<TranslatorViewProps> = ({ onShowToast }) =
               {/* Side-by-Side Bilingual Comparison */}
               {docJob.translatedText && (
                 <div className="pt-3 border-t border-slate-100 space-y-3">
-                  <span className="text-xs font-bold text-slate-800 block">
-                    {t('translator.bilingualCompare')}
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 block">
+                      {t('translator.bilingualCompare')}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (docJob?.translatedText) {
+                          await navigator.clipboard.writeText(docJob.translatedText);
+                          onShowToast?.('Translated text copied to clipboard!');
+                        }
+                      }}
+                      className="text-2xs font-semibold text-slate-600 hover:text-indigo-600 flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded cursor-pointer transition-colors"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy Translation</span>
+                    </button>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                     <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 max-h-64 overflow-y-auto font-mono text-2xs text-slate-700 whitespace-pre-wrap">
                       <span className="font-bold text-slate-400 block mb-1">ORIGINAL EXTRACT</span>

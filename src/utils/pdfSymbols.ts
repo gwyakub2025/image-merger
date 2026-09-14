@@ -254,19 +254,21 @@ export const SYMBOL_PRESETS: SymbolPreset[] = [
   // 5. CORPORATE LOGO
   {
     id: 'gulf-way-emblem',
-    name: 'Gulf Way Emblem',
+    name: 'GulfWay Official Emblem',
     category: 'logo',
     width: 100,
-    height: 100,
+    height: 120,
     dataUrl: svgToDataUrl(`
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
-        <circle cx="80" cy="80" r="72" fill="#0f172a" stroke="#4f8ec2" stroke-width="4"/>
-        <circle cx="80" cy="80" r="62" fill="none" stroke="#ffffff" stroke-opacity="0.2" stroke-width="1.5"/>
-        <g transform="translate(40, 32)">
-          <path d="M40 8 L72 38 L40 68 L8 38 Z" fill="none" stroke="#4f8ec2" stroke-width="5" stroke-linejoin="round"/>
-          <text x="40" y="46" font-family="Arial, sans-serif" font-weight="900" font-size="24" fill="#ffffff" text-anchor="middle">GW</text>
-        </g>
-        <text x="80" y="125" font-family="Arial, sans-serif" font-weight="800" font-size="11" fill="#93c5fd" text-anchor="middle" letter-spacing="2">GULF WAY</text>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 680" width="500" height="680">
+        <defs>
+          <linearGradient id="gwGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#5897CA" />
+            <stop offset="100%" stop-color="#4887BF" />
+          </linearGradient>
+        </defs>
+        <path d="M 5.5 265 A 245 245 0 1 1 494.5 265 L 285 265 L 285 203 L 402.9 203 A 160 160 0 1 0 90.7 265 Z" fill="url(#gwGrad)"/>
+        <path d="M 7.8 287 A 245 245 0 0 1 37.1 371.2 L 176 633 L 250 559 L 324 633 L 462.9 371.2 A 245 245 0 0 1 492.2 287 L 405.7 287 C 405.7 347 375 405 330 405 C 288 405 272 307 250 307 C 228 307 212 405 170 405 C 125 405 94.3 347 94.3 287 Z" fill="url(#gwGrad)"/>
+        <polygon points="250,587 324,661 250,739 176,661" fill="url(#gwGrad)"/>
       </svg>
     `),
   },

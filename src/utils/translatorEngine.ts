@@ -1,7 +1,7 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import jsPDF from 'jspdf';
 import { 
   SupportedLanguage, 
@@ -346,79 +346,312 @@ export async function extractTextFromDocument(file: File): Promise<string> {
 }
 
 /**
- * Generates an exported translated file (DOCX or TXT) for direct user download.
+ * Generates an exported translated file (DOCX, PDF, or TXT) for direct user download.
  */
 export async function exportTranslatedFile(
   baseName: string,
   translatedText: string,
-  targetLang: SupportedLangCode
+  targetLang: SupportedLangCode,
+  requestedFormat?: 'docx' | 'pdf' | 'txt'
 ): Promise<{ blob: Blob; filename: string }> {
   const safeBase = baseName.replace(/\.[^/.]+$/, '');
   const ext = baseName.split('.').pop()?.toLowerCase() || 'txt';
   const suffix = targetLang === 'ar' ? '_ar' : `_${targetLang}`;
+  const requested = requestedFormat || (ext === 'pdf' || ext === 'docx' ? 'docx' : ext);
 
-  if (ext === 'docx') {
-    // Generate DOCX with paragraphs
-    const paragraphs = translatedText.split('\n').map((line) => {
-      return new Paragraph({
-        children: [
-          new TextRun({
-            text: line || ' ',
-            font: targetLang === 'ar' ? 'Arial' : 'Calibri',
-            size: 24, // 12pt
-          }),
-        ],
-        spacing: { after: 120 },
-        bidirectional: targetLang === 'ar',
-      });
-    });
-
-    const doc = new Document({
-      sections: [
-        {
-          properties: {},
-          children: [
-            new Paragraph({
-              text: `Gulf Way Group — Certified Translation (${targetLang.toUpperCase()})`,
-              heading: HeadingLevel.HEADING_1,
-              spacing: { after: 200 },
-            }),
-            ...paragraphs,
-          ],
-        },
-      ],
-    });
-
-    const blob = await Packer.toBlob(doc);
-    return { blob, filename: `${safeBase}${suffix}.docx` };
+  if (requested === 'docx') {
+    return exportTranslatedDocx(baseName, translatedText, targetLang);
   }
 
-  if (ext === 'pdf') {
-    // Generate PDF text document
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    doc.setFontSize(14);
-    doc.setTextColor(30, 41, 59);
-    doc.text(`Gulf Way Group — Translation (${targetLang.toUpperCase()})`, 20, 20);
-
-    doc.setFontSize(10);
-    doc.setTextColor(71, 85, 105);
-
-    const splitLines = doc.splitTextToSize(translatedText, 170);
-    let y = 30;
-    for (const line of splitLines) {
-      if (y > 280) {
-        doc.addPage();
-        y = 20;
-      }
-      doc.text(line, 20, y);
-      y += 6;
-    }
-
-    const pdfBlob = doc.output('blob');
-    return { blob: pdfBlob, filename: `${safeBase}${suffix}.pdf` };
+  if (requested === 'pdf') {
+    return exportTranslatedPdf(baseName, translatedText, targetLang);
   }
 
   // Plain text fallback
   const blob = new Blob([translatedText], { type: 'text/plain;charset=utf-8' });
   return { blob, filename: `${safeBase}${suffix}.txt` };
+}
+
+/**
+ * Generates an editable Microsoft Word (.docx) document with full RTL/LTR styling.
+ */
+export async function exportTranslatedDocx(
+  baseName: string,
+  translatedText: string,
+  targetLang: SupportedLangCode
+): Promise<{ blob: Blob; filename: string }> {
+  const safeBase = baseName.replace(/\.[^/.]+$/, '');
+  const suffix = targetLang === 'ar' ? '_ar' : `_${targetLang}`;
+  const isRtl = targetLang === 'ar' || targetLang === 'ur';
+
+  const lines = translatedText.split('\n');
+  const paragraphs: Paragraph[] = [];
+
+  // Document Title Header
+  paragraphs.push(
+    new Paragraph({
+      text: isRtl ? 'مجموعة طريق الخليج — ترجمة رسمية معتمدة' : 'GULF WAY GROUP — CERTIFIED TRANSLATION',
+      heading: HeadingLevel.HEADING_1,
+      alignment: isRtl ? AlignmentType.RIGHT : AlignmentType.LEFT,
+      bidirectional: isRtl,
+      spacing: { after: 120 },
+    })
+  );
+
+  // Subheader Metadata
+  paragraphs.push(
+    new Paragraph({
+      alignment: isRtl ? AlignmentType.RIGHT : AlignmentType.LEFT,
+      bidirectional: isRtl,
+      spacing: { after: 300 },
+      children: [
+        new TextRun({
+          text: `Source: ${baseName} | Target Language: ${targetLang.toUpperCase()} | Generated: ${new Date().toLocaleDateString()}`,
+          italics: true,
+          size: 18,
+          color: '64748B',
+        }),
+      ],
+    })
+  );
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      paragraphs.push(
+        new Paragraph({
+          spacing: { after: 100 },
+        })
+      );
+      continue;
+    }
+
+    // Page break markers (e.g., "--- Page 1 ---" or "--- الصفحة 1 ---")
+    const pageMatch = trimmed.match(/^---\s*(Page|الصفحة)\s*(\d+)\s*---$/i);
+    if (pageMatch) {
+      paragraphs.push(
+        new Paragraph({
+          text: pageMatch[0],
+          heading: HeadingLevel.HEADING_2,
+          alignment: isRtl ? AlignmentType.RIGHT : AlignmentType.LEFT,
+          bidirectional: isRtl,
+          spacing: { before: 240, after: 120 },
+        })
+      );
+      continue;
+    }
+
+    const isSection =
+      trimmed.startsWith('SECTION') ||
+      trimmed.startsWith('القسم') ||
+      (trimmed === trimmed.toUpperCase() && trimmed.length > 5 && trimmed.length < 60);
+
+    paragraphs.push(
+      new Paragraph({
+        alignment: isRtl ? AlignmentType.RIGHT : AlignmentType.LEFT,
+        bidirectional: isRtl,
+        spacing: { after: 120 },
+        children: [
+          new TextRun({
+            text: line,
+            font: isRtl ? 'Arial' : 'Calibri',
+            size: isSection ? 24 : 22,
+            bold: isSection,
+            color: isSection ? '0F172A' : '334155',
+          }),
+        ],
+      })
+    );
+  }
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: {},
+        children: paragraphs,
+      },
+    ],
+  });
+
+  const blob = await Packer.toBlob(doc);
+  return { blob, filename: `${safeBase}${suffix}.docx` };
+}
+
+/**
+ * Generates a print-ready, high-fidelity PDF document rendering Arabic & English with 100% font accuracy.
+ */
+export async function exportTranslatedPdf(
+  baseName: string,
+  translatedText: string,
+  targetLang: SupportedLangCode
+): Promise<{ blob: Blob; filename: string }> {
+  const safeBase = baseName.replace(/\.[^/.]+$/, '');
+  const suffix = targetLang === 'ar' ? '_ar' : `_${targetLang}`;
+  const isRtl = targetLang === 'ar' || targetLang === 'ur';
+
+  // Canvas-based A4 rendering preserves Arabic cursive ligatures, RTL direction and precise layouts
+  if (typeof document !== 'undefined') {
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const canvasWidth = 1240;
+    const canvasHeight = 1754;
+    const margin = 80;
+    const contentWidth = canvasWidth - margin * 2;
+    const lineHeight = 34;
+
+    const lines = translatedText.split('\n');
+    let currentPage = 1;
+    let y = 140;
+
+    const createNewCanvas = () => {
+      const c = document.createElement('canvas');
+      c.width = canvasWidth;
+      c.height = canvasHeight;
+      const ctx = c.getContext('2d')!;
+
+      // Crisp white background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      // Top corporate bar
+      ctx.fillStyle = '#4f46e5';
+      ctx.fillRect(margin, 50, contentWidth, 4);
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 22px Arial, "Segoe UI", Tahoma, sans-serif';
+      ctx.direction = isRtl ? 'rtl' : 'ltr';
+      ctx.textAlign = isRtl ? 'right' : 'left';
+      const headerX = isRtl ? canvasWidth - margin : margin;
+      ctx.fillText(
+        isRtl
+          ? 'مجموعة طريق الخليج — ترجمة رسمية معتمدة'
+          : 'GULF WAY GROUP — CERTIFIED TRANSLATION',
+        headerX,
+        40
+      );
+
+      ctx.font = '14px Arial, "Segoe UI", Tahoma, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.direction = 'ltr';
+      ctx.textAlign = isRtl ? 'left' : 'right';
+      const metaX = isRtl ? margin : canvasWidth - margin;
+      ctx.fillText(
+        `Language: ${targetLang.toUpperCase()} | Date: ${new Date().toLocaleDateString()}`,
+        metaX,
+        40
+      );
+
+      return { canvas: c, ctx };
+    };
+
+    let current = createNewCanvas();
+    const pages: HTMLCanvasElement[] = [current.canvas];
+
+    const drawPageFooter = (ctx: CanvasRenderingContext2D, pageNum: number) => {
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '13px Arial, "Segoe UI", Tahoma, sans-serif';
+      ctx.direction = 'ltr';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        `Page ${pageNum} • Certified Official Translation • GulfWay Enterprise Suite`,
+        canvasWidth / 2,
+        canvasHeight - 40
+      );
+    };
+
+    const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
+      const words = text.split(' ');
+      const wrappedLines: string[] = [];
+      let currentLine = '';
+
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const width = ctx.measureText(testLine).width;
+        if (width > maxWidth && currentLine) {
+          wrappedLines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      if (currentLine) {
+        wrappedLines.push(currentLine);
+      }
+      return wrappedLines.length > 0 ? wrappedLines : [text];
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      const pageMatch = trimmed.match(/^---\s*(Page|الصفحة)\s*(\d+)\s*---$/i);
+      if (pageMatch && i > 0) {
+        drawPageFooter(current.ctx, currentPage);
+        currentPage++;
+        current = createNewCanvas();
+        pages.push(current.canvas);
+        y = 140;
+        continue;
+      }
+
+      if (!trimmed) {
+        y += lineHeight / 2;
+        continue;
+      }
+
+      const isSection =
+        trimmed.startsWith('SECTION') ||
+        trimmed.startsWith('القسم') ||
+        pageMatch !== null ||
+        (trimmed === trimmed.toUpperCase() && trimmed.length > 5 && trimmed.length < 60);
+
+      current.ctx.font = isSection
+        ? 'bold 20px Arial, "Segoe UI", Tahoma, sans-serif'
+        : '17px Arial, "Segoe UI", Tahoma, sans-serif';
+      current.ctx.fillStyle = isSection ? '#0f172a' : '#334155';
+      current.ctx.direction = isRtl ? 'rtl' : 'ltr';
+      current.ctx.textAlign = isRtl ? 'right' : 'left';
+
+      const textX = isRtl ? canvasWidth - margin : margin;
+      const wrapped = wrapText(current.ctx, trimmed, contentWidth);
+
+      for (const wLine of wrapped) {
+        if (y > canvasHeight - 120) {
+          drawPageFooter(current.ctx, currentPage);
+          currentPage++;
+          current = createNewCanvas();
+          pages.push(current.canvas);
+          y = 140;
+
+          current.ctx.font = isSection
+            ? 'bold 20px Arial, "Segoe UI", Tahoma, sans-serif'
+            : '17px Arial, "Segoe UI", Tahoma, sans-serif';
+          current.ctx.fillStyle = isSection ? '#0f172a' : '#334155';
+          current.ctx.direction = isRtl ? 'rtl' : 'ltr';
+          current.ctx.textAlign = isRtl ? 'right' : 'left';
+        }
+
+        current.ctx.fillText(wLine, textX, y);
+        y += lineHeight;
+      }
+    }
+
+    drawPageFooter(current.ctx, currentPage);
+
+    pages.forEach((pageCanvas, idx) => {
+      const imgData = pageCanvas.toDataURL('image/jpeg', 0.95);
+      if (idx > 0) {
+        pdf.addPage();
+      }
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+    });
+
+    const blob = pdf.output('blob');
+    return { blob, filename: `${safeBase}${suffix}.pdf` };
+  }
+
+  // Fallback if document is undefined
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  doc.text(translatedText.slice(0, 1000), 10, 10);
+  const blob = doc.output('blob');
+  return { blob, filename: `${safeBase}${suffix}.pdf` };
 }

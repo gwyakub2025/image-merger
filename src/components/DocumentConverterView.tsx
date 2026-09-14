@@ -471,8 +471,8 @@ export const DocumentConverterView: React.FC<DocumentConverterViewProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                Gulf Way Group
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
+                GulfWay Enterprise Suite
               </span>
               <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                 Bidirectional Engine

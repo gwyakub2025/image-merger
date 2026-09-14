@@ -78,12 +78,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         </div>
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 shadow-2xs">
-              {t('app.title')}
-            </span>
-            <h1 className="text-sm font-bold text-slate-800 tracking-tight hidden lg:inline">
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-bold text-slate-900 tracking-tight">
+                GulfWay
+              </span>
+              <span className="text-[9px] text-[#508EC2] font-bold">®</span>
+            </div>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200 shadow-2xs">
               Enterprise Suite
-            </h1>
+            </span>
             <span className="hidden xl:inline-block px-1.5 py-0.2 text-[9px] font-mono font-bold uppercase tracking-wider bg-slate-100 text-slate-600 rounded">
               v3.2
             </span>

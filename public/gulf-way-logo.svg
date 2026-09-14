@@ -1,56 +1,26 @@
-<svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 750' fill='none'>
   <defs>
-    <linearGradient id="gulfWayGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stopColor="#5795ca" />
-      <stop offset="100%" stopColor="#4383b7" />
+    <linearGradient id='gulfway-blue' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#5897CA'/>
+      <stop offset='100%' stop-color='#4987BE'/>
     </linearGradient>
   </defs>
 
-  <!-- 1. Upper Loop / Top Arch of the G -->
+  <!-- 1. Top 'G' Section -->
   <path
-    d="M 50 2
-       C 23.5 2 4.2 22.5 4 47
-       L 20.8 47
-       C 21.2 31.8 34.2 19.5 50 19.5
-       C 65.8 19.5 78.8 31.8 79.2 47
-       L 96 47
-       C 95.8 22.5 76.5 2 50 2 Z"
-    fill="url(#gulfWayGradient)"
+    d='M 5.5 265 A 245 245 0 1 1 494.5 265 L 285 265 L 285 203 L 402.9 203 A 160 160 0 1 0 90.7 265 Z'
+    fill='url(#gulfway-blue)'
   />
 
-  <!-- 2. G Crossbar on the right -->
+  <!-- 2. Middle 'W' Pin Body -->
   <path
-    d="M 59.5 37.5
-       L 96 37.5
-       L 96 47
-       L 59.5 47
-       Z"
-    fill="url(#gulfWayGradient)"
+    d='M 7.8 287 A 245 245 0 0 1 37.1 371.2 L 176 633 L 250 559 L 324 633 L 462.9 371.2 A 245 245 0 0 1 492.2 287 L 405.7 287 C 405.7 347 375 405 330 405 C 288 405 272 307 250 307 C 228 307 212 405 170 405 C 125 405 94.3 347 94.3 287 Z'
+    fill='url(#gulfway-blue)'
   />
 
-  <!-- 3. Lower Body with Stylized 'W' Peak & Slits -->
-  <path
-    d="M 4 49.5
-       L 20.8 49.5
-       C 25 61 31.5 64 35.5 64
-       C 39.5 64 45 57 50 52
-       C 55 57 60.5 64 64.5 64
-       C 68.5 64 75 61 79.2 49.5
-       L 96 49.5
-       L 62 86.5
-       L 50 74.5
-       L 38 86.5
-       Z"
-    fill="url(#gulfWayGradient)"
-  />
-
-  <!-- 4. Standalone Diamond Tip at the bottom point -->
-  <path
-    d="M 50 78
-       L 61.5 89.5
-       L 50 118
-       L 38.5 89.5
-       Z"
-    fill="url(#gulfWayGradient)"
+  <!-- 3. Bottom Diamond Tip -->
+  <polygon
+    points='250,587 324,661 250,739 176,661'
+    fill='url(#gulfway-blue)'
   />
 </svg>

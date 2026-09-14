@@ -198,7 +198,7 @@ export async function renderBatchToCanvas(
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
-    const headerText = config.pageHeaderTitle || 'Gulf Way Group';
+    const headerText = config.pageHeaderTitle || 'GulfWay Enterprise Suite';
     ctx.fillText(headerText, marginPx, marginPx + 20);
 
     if (config.showPageNumbers) {
@@ -350,7 +350,7 @@ export async function renderBatchToCanvas(
     ctx.font = '13px system-ui, -apple-system, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Gulf Way Group • Standard 210 × 297 mm A4', marginPx, footerY);
+    ctx.fillText('GulfWay Enterprise Suite • Standard 210 × 297 mm A4', marginPx, footerY);
 
     ctx.textAlign = 'right';
     ctx.fillText(`Page ${batchIndex + 1} of ${totalBatches}`, width - marginPx, footerY);
