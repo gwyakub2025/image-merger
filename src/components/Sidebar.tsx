@@ -19,7 +19,8 @@ import {
   ShieldCheck,
   Scissors,
   Languages,
-  Globe
+  Globe,
+  FileStack
 } from 'lucide-react';
 import { BatchConfig, OutputFormat, ActiveTab } from '../types';
 import { GulfWayLogo } from './GulfWayLogo';
@@ -110,6 +111,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="text-[11px] font-bold text-slate-400 uppercase px-2 mb-1 tracking-wider">
               {t('nav.tools', 'Tool Modules')}
             </div>
+
+            {/* Bulk File Merger */}
+            <button
+              type="button"
+              id="sidebar-nav-bulk-merger-btn"
+              onClick={() => onSelectTab('bulk-merger')}
+              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors cursor-pointer ${
+                activeTab === 'bulk-merger'
+                  ? 'bg-blue-50 text-blue-700 font-semibold border border-blue-200/80 shadow-2xs'
+                  : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FileStack className="w-4 h-4 text-blue-600 shrink-0" />
+                <span className="truncate">{t('nav.bulkMerger', 'Bulk File Merger')}</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.2 bg-blue-100 text-blue-800 font-bold rounded">
+                NEW
+              </span>
+            </button>
 
             {/* 1. PDF Compressor */}
             <button

@@ -5,6 +5,7 @@ export type Layout3Style = 'featured-top' | 'equal-rows' | 'equal-cols';
 export type ImageFilterType = 'none' | 'grayscale' | 'sepia' | 'contrast';
 
 export type ActiveTab = 
+  | 'bulk-merger'
   | 'batcher' 
   | 'converter' 
   | 'resizer' 
@@ -20,6 +21,7 @@ export * from './types/admin';
 export * from './types/pdfCompressor';
 export * from './types/pdfSplitter';
 export * from './types/translator';
+export * from './types/bulkMerger';
 
 export type WatermarkType = 'text' | 'image';
 export type WatermarkPosition = 'center-diagonal' | 'center' | 'bottom-right' | 'top-right' | 'repeat-pattern';

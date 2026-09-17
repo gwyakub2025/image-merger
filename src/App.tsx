@@ -33,6 +33,7 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { PdfCompressorView } from './components/compressor/PdfCompressorView';
 import { PdfSplitterView } from './components/splitter/PdfSplitterView';
 import { TranslatorView } from './components/translator/TranslatorView';
+import { BulkMergerView } from './components/bulkMerger/BulkMergerView';
 import { useLanguage } from './i18n/LanguageContext';
 import { Footer } from './components/Footer';
 import { CheckCircle2 } from 'lucide-react';
@@ -600,7 +601,13 @@ export default function App() {
         />
 
         {/* Dynamic Tab Views */}
-        {activeTab === 'batcher' ? (
+        {activeTab === 'bulk-merger' ? (
+          /* Bulk Files Upload and Merger Module */
+          <BulkMergerView
+            onShowToast={showToast}
+            onNavigateToTab={(tab) => setActiveTab(tab as any)}
+          />
+        ) : activeTab === 'batcher' ? (
           /* Scrollable Workbench Body */
           <section className="flex-1 p-4 sm:p-6 space-y-5 overflow-y-auto">
             {/* Prompt Input Upload Bar */}

@@ -21,6 +21,7 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'brand.activeTools': 'Active Batch Processor',
 
     // Navigation Tabs
+    'nav.bulkMerger': 'Bulk File Merger',
     'nav.batcher': 'A4 Batcher',
     'nav.converter': 'Format Converter',
     'nav.resizer': 'Image Sizer',
@@ -154,6 +155,7 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'brand.activeTools': 'معالج الدفعات والوثائق',
 
     // Navigation Tabs
+    'nav.bulkMerger': 'دمج الملفات المتعددة',
     'nav.batcher': 'مجمع صفحات A4',
     'nav.converter': 'محول الصيغ',
     'nav.resizer': 'تعديل قياسات الصور',

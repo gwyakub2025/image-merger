@@ -1,6 +1,6 @@
 {
   "name": "GulfWay Enterprise Suite",
-  "description": "GulfWay Enterprise Suite unified workplace platform: A4 batch processor, WebAssembly PDF compressor, multi-mode PDF splitter, bilingual English-Arabic document translator, format converter, bulk image sizer, PDF editor with digital signatures, Bates numbering, WPS report extractor, and sheet merger.",
+  "description": "GulfWay Enterprise Suite unified workplace platform: Bulk files upload and multi-format document merger (PDF, JPG, PNG, DOCX, XLSX, TXT), A4 batch processor, WebAssembly PDF compressor, multi-mode PDF splitter, bilingual English-Arabic document translator, format converter, bulk image sizer, PDF editor with digital signatures, Bates numbering, WPS report extractor, and sheet merger.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
