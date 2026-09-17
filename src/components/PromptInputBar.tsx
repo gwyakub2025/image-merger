@@ -76,10 +76,31 @@ export const PromptInputBar: React.FC<PromptInputBarProps> = ({
             </span>
             <button
               type="button"
+              onClick={() => handleQuickPrompt('Fit all assets into 2 sheets')}
+              className="px-2 py-0.5 rounded bg-indigo-950/70 hover:bg-indigo-800 text-indigo-200 text-[10px] font-mono border border-indigo-700/60 transition-colors"
+            >
+              Fit to 2 Sheets
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickPrompt('Quad Grid 4 images per sheet')}
+              className="px-2 py-0.5 rounded bg-indigo-950/70 hover:bg-indigo-800 text-indigo-200 text-[10px] font-mono border border-indigo-700/60 transition-colors"
+            >
+              Quad Grid (4/sheet)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickPrompt('Contact Sheet 6 images per sheet')}
+              className="px-2 py-0.5 rounded bg-indigo-950/70 hover:bg-indigo-800 text-indigo-200 text-[10px] font-mono border border-indigo-700/60 transition-colors"
+            >
+              Contact (6/sheet)
+            </button>
+            <button
+              type="button"
               onClick={() => handleQuickPrompt('Set max 2 images per A4 sheet in portrait mode')}
               className="px-2 py-0.5 rounded bg-indigo-950/70 hover:bg-indigo-800 text-indigo-200 text-[10px] font-mono border border-indigo-700/60 transition-colors"
             >
-              2 Img / Sheet (Portrait)
+              2 Img / Sheet
             </button>
             <button
               type="button"

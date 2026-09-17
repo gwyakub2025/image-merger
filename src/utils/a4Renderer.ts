@@ -48,8 +48,23 @@ export function computeSlots(
     return slots;
   }
 
-  if (config.imagesPerPage === 2 || count === 2) {
-    if (config.orientation === 'portrait') {
+  if (count === 2) {
+    if (config.templateId === 'dual-split' || (config.orientation === 'landscape' && config.templateId !== 'dual-stacked')) {
+      // 2 side-by-side columns
+      const slotW = (contentW - spacingPx) / 2;
+      slots.push({
+        x: contentX,
+        y: contentY,
+        width: slotW,
+        height: contentH,
+      });
+      slots.push({
+        x: contentX + slotW + spacingPx,
+        y: contentY,
+        width: slotW,
+        height: contentH,
+      });
+    } else {
       // 2 stacked rows
       const slotH = (contentH - spacingPx) / 2;
       slots.push({
@@ -64,27 +79,12 @@ export function computeSlots(
         width: contentW,
         height: slotH,
       });
-    } else {
-      // Landscape: 2 side-by-side columns
-      const slotW = (contentW - spacingPx) / 2;
-      slots.push({
-        x: contentX,
-        y: contentY,
-        width: slotW,
-        height: contentH,
-      });
-      slots.push({
-        x: contentX + slotW + spacingPx,
-        y: contentY,
-        width: slotW,
-        height: contentH,
-      });
     }
     return slots;
   }
 
   // 3 images per page
-  if (config.orientation === 'portrait') {
+  if (count === 3) {
     if (config.layout3Style === 'equal-rows') {
       // 3 horizontal rows
       const slotH = (contentH - spacingPx * 2) / 3;
@@ -96,7 +96,24 @@ export function computeSlots(
           height: slotH,
         });
       }
-    } else {
+      return slots;
+    }
+    
+    if (config.layout3Style === 'equal-cols') {
+      // 3 vertical columns
+      const slotW = (contentW - spacingPx * 2) / 3;
+      for (let i = 0; i < 3; i++) {
+        slots.push({
+          x: contentX + i * (slotW + spacingPx),
+          y: contentY,
+          width: slotW,
+          height: contentH,
+        });
+      }
+      return slots;
+    }
+
+    if (config.orientation === 'portrait') {
       // 'featured-top' (1 prominent top image + 2 side-by-side bottom images)
       const topH = (contentH - spacingPx) * 0.52;
       const bottomH = contentH - spacingPx - topH;
@@ -123,22 +140,9 @@ export function computeSlots(
         width: bottomW,
         height: bottomH,
       });
-    }
-  } else {
-    // Landscape 3 images
-    if (config.layout3Style === 'equal-cols') {
-      // 3 vertical columns
-      const slotW = (contentW - spacingPx * 2) / 3;
-      for (let i = 0; i < 3; i++) {
-        slots.push({
-          x: contentX + i * (slotW + spacingPx),
-          y: contentY,
-          width: slotW,
-          height: contentH,
-        });
-      }
+      return slots;
     } else {
-      // 1 left featured + 2 stacked right
+      // Landscape 3 images: 1 left featured + 2 stacked right
       const leftW = (contentW - spacingPx) * 0.55;
       const rightW = contentW - spacingPx - leftW;
       const rightH = (contentH - spacingPx) / 2;
@@ -161,7 +165,82 @@ export function computeSlots(
         width: rightW,
         height: rightH,
       });
+      return slots;
     }
+  }
+
+  // 4 images per page: 2x2 Quad Grid
+  if (count === 4) {
+    const slotW = (contentW - spacingPx) / 2;
+    const slotH = (contentH - spacingPx) / 2;
+    for (let r = 0; r < 2; r++) {
+      for (let c = 0; c < 2; c++) {
+        slots.push({
+          x: contentX + c * (slotW + spacingPx),
+          y: contentY + r * (slotH + spacingPx),
+          width: slotW,
+          height: slotH,
+        });
+      }
+    }
+    return slots;
+  }
+
+  // General Grid Layout for counts 5, 6, 8, 9, 12, etc.
+  let cols = config.gridCols;
+  let rows = config.gridRows;
+
+  if (!cols || !rows) {
+    if (count <= 6) {
+      if (config.orientation === 'portrait') {
+        cols = 2;
+        rows = 3;
+      } else {
+        cols = 3;
+        rows = 2;
+      }
+    } else if (count <= 8) {
+      if (config.orientation === 'portrait') {
+        cols = 2;
+        rows = 4;
+      } else {
+        cols = 4;
+        rows = 2;
+      }
+    } else if (count <= 9) {
+      cols = 3;
+      rows = 3;
+    } else if (count <= 12) {
+      if (config.orientation === 'portrait') {
+        cols = 3;
+        rows = 4;
+      } else {
+        cols = 4;
+        rows = 3;
+      }
+    } else {
+      if (config.orientation === 'portrait') {
+        cols = 4;
+        rows = Math.ceil(count / 4);
+      } else {
+        cols = Math.ceil(Math.sqrt(count * 1.4));
+        rows = Math.ceil(count / cols);
+      }
+    }
+  }
+
+  const slotW = (contentW - spacingPx * (cols - 1)) / cols;
+  const slotH = (contentH - spacingPx * (rows - 1)) / rows;
+
+  for (let i = 0; i < count; i++) {
+    const r = Math.floor(i / cols);
+    const c = i % cols;
+    slots.push({
+      x: contentX + c * (slotW + spacingPx),
+      y: contentY + r * (slotH + spacingPx),
+      width: slotW,
+      height: slotH,
+    });
   }
 
   return slots;
@@ -227,9 +306,10 @@ export async function renderBatchToCanvas(
 
     const img = await loadImageElement(imgData.compressedDataUrl);
 
-    // Reserve caption height if captions enabled
-    const captionHeight = config.showCaptions ? 28 : 0;
-    const imgSlotH = slot.height - captionHeight;
+    // Reserve caption height if captions enabled (adapt for dense grids)
+    const isDense = slot.height < 220 || slot.width < 220;
+    const captionHeight = config.showCaptions ? (isDense ? 20 : 28) : 0;
+    const imgSlotH = Math.max(20, slot.height - captionHeight);
 
     // Draw slot card background container
     ctx.fillStyle = '#F8FAFC';
@@ -305,15 +385,16 @@ export async function renderBatchToCanvas(
     ctx.filter = 'none';
 
     // Caption
-    if (config.showCaptions) {
+    if (config.showCaptions && captionHeight > 0) {
+      const capFontSize = isDense ? 11 : 14;
       ctx.fillStyle = '#64748B';
-      ctx.font = '14px system-ui, -apple-system, sans-serif';
+      ctx.font = `${capFontSize}px system-ui, -apple-system, sans-serif`;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      const capY = slot.y + imgSlotH + 14;
+      const capY = slot.y + imgSlotH + captionHeight / 2;
 
       // Truncate name if needed
-      const maxTextW = slot.width - 120;
+      const maxTextW = isDense ? slot.width - 40 : slot.width - 120;
       let displayName = imgData.name;
       if (ctx.measureText(displayName).width > maxTextW) {
         while (displayName.length > 5 && ctx.measureText(displayName + '...').width > maxTextW) {
@@ -324,15 +405,17 @@ export async function renderBatchToCanvas(
 
       ctx.fillText(displayName, slot.x + 4, capY);
 
-      // Resolution & size on right
-      ctx.textAlign = 'right';
-      ctx.fillStyle = '#94A3B8';
-      ctx.font = '12px system-ui, -apple-system, sans-serif';
-      ctx.fillText(
-        `${imgData.compressedWidth}×${imgData.compressedHeight}px`,
-        slot.x + slot.width - 4,
-        capY
-      );
+      // Resolution & size on right if space permits
+      if (!isDense && slot.width > 260) {
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#94A3B8';
+        ctx.font = '12px system-ui, -apple-system, sans-serif';
+        ctx.fillText(
+          `${imgData.compressedWidth}×${imgData.compressedHeight}px`,
+          slot.x + slot.width - 4,
+          capY
+        );
+      }
     }
   }
 

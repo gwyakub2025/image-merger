@@ -25,6 +25,7 @@ import {
 import { BatchConfig, OutputFormat, ActiveTab } from '../types';
 import { GulfWayLogo } from './GulfWayLogo';
 import { useLanguage } from '../i18n/LanguageContext';
+import { SheetStudioPanel } from './SheetStudioPanel';
 
 interface SidebarProps {
   config: BatchConfig;
@@ -338,72 +339,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        {/* Section 1: Batch Constraint */}
-        <div>
-          <div className="text-[11px] font-bold text-slate-400 uppercase px-2 mb-2 tracking-wider flex items-center justify-between">
-            <span>Constraint</span>
-            <span className="font-mono text-indigo-600">MAX {config.imagesPerPage}</span>
-          </div>
-
-          <div className="space-y-1.5">
-            {/* Toggle 2 Images */}
-            <button
-              type="button"
-              id="sidebar-toggle-2-images"
-              onClick={() => onUpdateConfig({ imagesPerPage: 2 })}
-              className={`w-full p-2.5 rounded-lg flex items-center justify-between transition-colors ${
-                config.imagesPerPage === 2
-                  ? 'bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200/80'
-                  : 'text-slate-600 hover:bg-slate-50 border border-transparent'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-3.5 h-3.5 border border-current rounded flex flex-col gap-0.5 p-0.5">
-                  <div className="w-full h-1 bg-current rounded-2xs" />
-                  <div className="w-full h-1 bg-current rounded-2xs" />
-                </div>
-                <span>2 Images / Sheet</span>
-              </div>
-              <div className={`w-7 h-3.5 rounded-full relative transition-colors ${
-                config.imagesPerPage === 2 ? 'bg-indigo-600' : 'bg-slate-200'
-              }`}>
-                <div className={`absolute top-0.5 w-2.5 h-2.5 bg-white rounded-full transition-transform ${
-                  config.imagesPerPage === 2 ? 'right-0.5' : 'left-0.5'
-                }`} />
-              </div>
-            </button>
-
-            {/* Toggle 3 Images */}
-            <button
-              type="button"
-              id="sidebar-toggle-3-images"
-              onClick={() => onUpdateConfig({ imagesPerPage: 3 })}
-              className={`w-full p-2.5 rounded-lg flex items-center justify-between transition-colors ${
-                config.imagesPerPage === 3
-                  ? 'bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200/80'
-                  : 'text-slate-600 hover:bg-slate-50 border border-transparent'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-3.5 h-3.5 border border-current rounded flex flex-col gap-0.5 p-0.5">
-                  <div className="w-full h-0.5 bg-current rounded-2xs" />
-                  <div className="w-full flex-1 flex gap-0.5">
-                    <div className="flex-1 bg-current rounded-2xs" />
-                    <div className="flex-1 bg-current rounded-2xs" />
-                  </div>
-                </div>
-                <span>3 Images / Sheet</span>
-              </div>
-              <div className={`w-7 h-3.5 rounded-full relative transition-colors ${
-                config.imagesPerPage === 3 ? 'bg-indigo-600' : 'bg-slate-200'
-              }`}>
-                <div className={`absolute top-0.5 w-2.5 h-2.5 bg-white rounded-full transition-transform ${
-                  config.imagesPerPage === 3 ? 'right-0.5' : 'left-0.5'
-                }`} />
-              </div>
-            </button>
-          </div>
-        </div>
+        {/* Section 1: Sheet & Layout Strategy Studio */}
+        <SheetStudioPanel
+          config={config}
+          onUpdateConfig={onUpdateConfig}
+          totalImages={totalImages}
+          totalBatches={totalBatches}
+        />
 
         {/* Section 2: Canvas Geometry */}
         <div>

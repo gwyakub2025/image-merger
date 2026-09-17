@@ -4,6 +4,32 @@ export type OutputFormat = 'jpg' | 'pdf' | 'both';
 export type Layout3Style = 'featured-top' | 'equal-rows' | 'equal-cols';
 export type ImageFilterType = 'none' | 'grayscale' | 'sepia' | 'contrast';
 
+export type SheetTemplateId = 
+  | 'single-hero'       // 1 per sheet
+  | 'dual-stacked'      // 2 per sheet (stacked rows)
+  | 'dual-split'        // 2 per sheet (side-by-side columns)
+  | 'triple-featured'   // 3 per sheet (featured top + 2 bottom)
+  | 'triple-rows'       // 3 per sheet (equal horizontal strips)
+  | 'triple-cols'       // 3 per sheet (equal vertical strips)
+  | 'quad-grid'         // 4 per sheet (2x2 equal quadrants)
+  | 'contact-6'         // 6 per sheet (2x3 contact sheet)
+  | 'catalog-8'         // 8 per sheet (2x4 compact catalog)
+  | 'gallery-9'         // 9 per sheet (3x3 gallery grid)
+  | 'dense-12'          // 12 per sheet (3x4 index)
+  | 'target-sheets'     // dynamic based on user-described target number of sheets
+  | 'custom-grid';      // custom rows & cols
+
+export interface SheetTemplate {
+  id: SheetTemplateId;
+  name: string;
+  shortLabel: string;
+  imagesPerPage: number;
+  description: string;
+  iconType: string;
+  recommendedOrientation?: PageOrientation;
+  badge?: string;
+}
+
 export type ActiveTab = 
   | 'bulk-merger'
   | 'batcher' 
@@ -55,10 +81,14 @@ export interface UploadedImage {
 }
 
 export interface BatchConfig {
-  imagesPerPage: 2 | 3;
+  imagesPerPage: number; // 1 to 16
   orientation: PageOrientation;
   fitMode: ImageFitMode;
   layout3Style: Layout3Style;
+  templateId?: SheetTemplateId;
+  targetSheetCount?: number; // target total sheets
+  gridRows?: number;
+  gridCols?: number;
   quality: number; // 0.5 to 0.95
   maxDimension: number; // e.g. 1920
   showCaptions: boolean;

@@ -15,6 +15,7 @@ import {
   exportAllBatchesAsZip, 
   downloadDataUrl 
 } from './utils/exportUtils';
+import { calculateTargetSheetLayout } from './utils/sheetTemplates';
 import { Sidebar } from './components/Sidebar';
 import { Toolbar } from './components/Toolbar';
 import { PromptInputBar } from './components/PromptInputBar';
@@ -289,10 +290,40 @@ export default function App() {
     const lower = promptText.toLowerCase();
     const updated: Partial<BatchConfig> = {};
 
-    if (lower.includes('3 image') || lower.includes('3 per') || lower.includes('max 3')) {
+    // Check for target sheet descriptions e.g. "fit to 2 sheets", "3 sheets", "target 4 sheets"
+    const targetSheetsMatch = lower.match(/(?:fit\s+(?:all\s+assets\s+|all\s+images\s+)?(?:in|into|across|to)|target)\s+(\d+)\s+sheets?/);
+    if (targetSheetsMatch) {
+      const sheets = parseInt(targetSheetsMatch[1]);
+      if (sheets > 0) {
+        const plan = calculateTargetSheetLayout(images.length || 6, sheets);
+        updated.targetSheetCount = sheets;
+        updated.imagesPerPage = plan.imagesPerPage;
+        updated.templateId = plan.suggestedTemplate;
+      }
+    } else if (lower.includes('quad') || lower.includes('4 image') || lower.includes('4 per') || lower.includes('max 4')) {
+      updated.imagesPerPage = 4;
+      updated.templateId = 'quad-grid';
+    } else if (lower.includes('contact sheet') || lower.includes('6 image') || lower.includes('6 per') || lower.includes('max 6')) {
+      updated.imagesPerPage = 6;
+      updated.templateId = 'contact-6';
+    } else if (lower.includes('catalog') || lower.includes('8 image') || lower.includes('8 per') || lower.includes('max 8')) {
+      updated.imagesPerPage = 8;
+      updated.templateId = 'catalog-8';
+    } else if (lower.includes('gallery') || lower.includes('9 image') || lower.includes('9 per') || lower.includes('max 9')) {
+      updated.imagesPerPage = 9;
+      updated.templateId = 'gallery-9';
+    } else if (lower.includes('dense') || lower.includes('12 image') || lower.includes('12 per') || lower.includes('max 12')) {
+      updated.imagesPerPage = 12;
+      updated.templateId = 'dense-12';
+    } else if (lower.includes('single') || lower.includes('1 image') || lower.includes('1 per') || lower.includes('spotlight')) {
+      updated.imagesPerPage = 1;
+      updated.templateId = 'single-hero';
+    } else if (lower.includes('3 image') || lower.includes('3 per') || lower.includes('max 3')) {
       updated.imagesPerPage = 3;
+      updated.templateId = 'triple-featured';
     } else if (lower.includes('2 image') || lower.includes('2 per') || lower.includes('max 2')) {
       updated.imagesPerPage = 2;
+      updated.templateId = 'dual-stacked';
     }
 
     if (lower.includes('landscape')) {

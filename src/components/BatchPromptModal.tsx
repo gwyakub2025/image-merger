@@ -42,7 +42,7 @@ export const BatchPromptModal: React.FC<BatchPromptModalProps> = ({
   onSaveConfig,
   isInitialPrompt = false,
 }) => {
-  const [imagesPerPage, setImagesPerPage] = useState<2 | 3>(config.imagesPerPage);
+  const [imagesPerPage, setImagesPerPage] = useState<number>(config.imagesPerPage);
   const [orientation, setOrientation] = useState<PageOrientation>(config.orientation);
   const [fitMode, setFitMode] = useState<ImageFitMode>(config.fitMode);
   const [layout3Style, setLayout3Style] = useState<Layout3Style>(config.layout3Style);
@@ -164,75 +164,62 @@ export const BatchPromptModal: React.FC<BatchPromptModalProps> = ({
               </span>
             </label>
 
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                id="select-2-images-batch-btn"
-                onClick={() => setImagesPerPage(2)}
-                className={`p-4 rounded-xl border-2 text-left transition-all relative ${
-                  imagesPerPage === 2
-                    ? 'border-indigo-600 bg-indigo-50/50 text-indigo-950 shadow-sm'
-                    : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-base font-bold">2 Images / File</span>
-                  {imagesPerPage === 2 && (
-                    <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center">
-                      <Check className="w-3 h-3" />
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-slate-500 mb-3 leading-relaxed">
-                  Evenly divided into top/bottom halves. High visibility per photo.
-                </p>
-                {/* Visual miniature representation */}
-                <div className="w-full h-12 rounded bg-slate-200/70 p-1 flex flex-col gap-1">
-                  <div className="w-full flex-1 bg-white rounded border border-slate-300/80 flex items-center justify-center text-[9px] text-slate-400 font-medium">
-                    Image 1
+            {/* Quick Presets Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+              {[
+                { count: 1, label: '1 / Sheet', sub: 'Single Spotlight' },
+                { count: 2, label: '2 / Sheet', sub: 'Dual Halves' },
+                { count: 3, label: '3 / Sheet', sub: 'Triple Hero' },
+                { count: 4, label: '4 / Sheet', sub: 'Quad 2×2' },
+                { count: 6, label: '6 / Sheet', sub: 'Contact 2×3' },
+                { count: 8, label: '8 / Sheet', sub: 'Catalog 2×4' },
+                { count: 9, label: '9 / Sheet', sub: 'Gallery 3×3' },
+                { count: 12, label: '12 / Sheet', sub: 'Dense 3×4' },
+              ].map((opt) => (
+                <button
+                  key={opt.count}
+                  type="button"
+                  id={`modal-preset-${opt.count}-btn`}
+                  onClick={() => setImagesPerPage(opt.count)}
+                  className={`p-2.5 rounded-xl border text-left transition-all relative cursor-pointer ${
+                    imagesPerPage === opt.count
+                      ? 'border-indigo-600 bg-indigo-50/70 text-indigo-950 shadow-xs'
+                      : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold font-mono">{opt.label}</span>
+                    {imagesPerPage === opt.count && (
+                      <div className="w-3.5 h-3.5 rounded-full bg-indigo-600 text-white flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5" />
+                      </div>
+                    )}
                   </div>
-                  <div className="w-full flex-1 bg-white rounded border border-slate-300/80 flex items-center justify-center text-[9px] text-slate-400 font-medium">
-                    Image 2
-                  </div>
-                </div>
-              </button>
+                  <p className="text-[10px] text-slate-500 leading-tight">
+                    {opt.sub}
+                  </p>
+                </button>
+              ))}
+            </div>
 
-              <button
-                type="button"
-                id="select-3-images-batch-btn"
-                onClick={() => setImagesPerPage(3)}
-                className={`p-4 rounded-xl border-2 text-left transition-all relative ${
-                  imagesPerPage === 3
-                    ? 'border-indigo-600 bg-indigo-50/50 text-indigo-950 shadow-sm'
-                    : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-base font-bold">3 Images / File</span>
-                  {imagesPerPage === 3 && (
-                    <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center">
-                      <Check className="w-3 h-3" />
-                    </div>
-                  )}
+            {/* Custom Density Range Slider */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-4">
+              <div className="flex-1">
+                <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+                  <span>Custom Sheet Capacity</span>
+                  <span className="font-mono text-indigo-600 font-bold">
+                    {imagesPerPage} images / A4
+                  </span>
                 </div>
-                <p className="text-xs text-slate-500 mb-3 leading-relaxed">
-                  Compact 3-photo presentation. Ideal for cataloging & contact sheets.
-                </p>
-                {/* Visual miniature representation */}
-                <div className="w-full h-12 rounded bg-slate-200/70 p-1 flex flex-col gap-1">
-                  <div className="w-full h-5 bg-white rounded border border-slate-300/80 flex items-center justify-center text-[9px] text-slate-400 font-medium">
-                    Image 1 (Featured)
-                  </div>
-                  <div className="w-full flex-1 flex gap-1">
-                    <div className="flex-1 bg-white rounded border border-slate-300/80 flex items-center justify-center text-[8px] text-slate-400 font-medium">
-                      Img 2
-                    </div>
-                    <div className="flex-1 bg-white rounded border border-slate-300/80 flex items-center justify-center text-[8px] text-slate-400 font-medium">
-                      Img 3
-                    </div>
-                  </div>
-                </div>
-              </button>
+                <input
+                  type="range"
+                  min={1}
+                  max={12}
+                  value={imagesPerPage}
+                  onChange={(e) => setImagesPerPage(parseInt(e.target.value))}
+                  className="w-full accent-indigo-600 cursor-pointer"
+                />
+              </div>
             </div>
           </div>
 

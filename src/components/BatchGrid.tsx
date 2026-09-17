@@ -182,20 +182,33 @@ export const BatchGrid: React.FC<BatchGridProps> = ({
                 </div>
               </div>
 
-              {/* Visual Aspect Ratio Representation (High Density aspect-[1/1.414]) */}
-              <div className="flex gap-2 mb-3 select-none">
-                {batch.images.map((img, imgIdx) => {
-                  const filterOption = getFilterOption(img.filter);
-                  const isFiltered = img.filter && img.filter !== 'none';
-                  const isFilterPopoverOpen = activeFilterPopoverId === img.id;
+              {/* Visual Aspect Ratio Representation (High Density adaptive grid) */}
+              {(() => {
+                const gridColsClass =
+                  maxSlots === 1 ? 'grid-cols-1' :
+                  maxSlots === 2 ? 'grid-cols-2' :
+                  maxSlots === 3 ? 'grid-cols-3' :
+                  maxSlots === 4 ? 'grid-cols-2' :
+                  maxSlots <= 6 ? 'grid-cols-3' :
+                  maxSlots <= 8 ? 'grid-cols-4' :
+                  'grid-cols-3';
 
-                  return (
-                    <div
-                      key={img.id}
-                      id={`image-slot-${img.id}`}
-                      className="flex-1 aspect-[1/1.414] bg-slate-100 border border-slate-200 rounded-lg p-1.5 flex flex-col items-center justify-between text-slate-500 relative group/slot cursor-pointer transition-all hover:shadow-xs"
-                      onClick={() => onPreviewImage(img, batch.batchIndex, imgIdx)}
-                    >
+                const aspectClass = maxSlots <= 3 ? 'aspect-[1/1.3]' : maxSlots <= 6 ? 'aspect-[1/1.1]' : 'aspect-square';
+
+                return (
+                  <div className={`grid ${gridColsClass} gap-2 mb-3 select-none`}>
+                    {batch.images.map((img, imgIdx) => {
+                      const filterOption = getFilterOption(img.filter);
+                      const isFiltered = img.filter && img.filter !== 'none';
+                      const isFilterPopoverOpen = activeFilterPopoverId === img.id;
+
+                      return (
+                        <div
+                          key={img.id}
+                          id={`image-slot-${img.id}`}
+                          className={`w-full ${aspectClass} bg-slate-100 border border-slate-200 rounded-lg p-1.5 flex flex-col items-center justify-between text-slate-500 relative group/slot cursor-pointer transition-all hover:shadow-xs`}
+                          onClick={() => onPreviewImage(img, batch.batchIndex, imgIdx)}
+                        >
                       {/* Image Thumbnail with CSS Filter */}
                       <div className="w-full flex-1 rounded overflow-hidden bg-white border border-slate-200 mb-1 relative flex items-center justify-center">
                         <img 
@@ -351,16 +364,18 @@ export const BatchGrid: React.FC<BatchGridProps> = ({
                   );
                 })}
 
-                {/* Empty Slots if any */}
-                {Array.from({ length: emptySlotsCount }).map((_, emptyIdx) => (
-                  <div
-                    key={`empty-${emptyIdx}`}
-                    className="flex-1 aspect-[1/1.414] border border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-300 italic text-[10px] font-mono"
-                  >
-                    Empty Slot
+                    {/* Empty Slots if any */}
+                    {Array.from({ length: emptySlotsCount }).map((_, emptyIdx) => (
+                      <div
+                        key={`empty-${emptyIdx}`}
+                        className={`w-full ${aspectClass} border border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-300 italic text-[10px] font-mono`}
+                      >
+                        {maxSlots <= 4 ? 'Empty Slot' : '+ Slot'}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                );
+              })()}
 
               {/* Full A4 Sheet Thumbnail with Click Preview */}
               <div
