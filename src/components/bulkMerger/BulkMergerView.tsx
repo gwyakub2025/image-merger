@@ -51,6 +51,7 @@ import {
   mergeFilesToZip,
 } from '../../utils/bulkMergerEngine';
 import { FilePreviewModal } from './FilePreviewModal';
+import { ConsolidatedDocumentPreviewer } from './ConsolidatedDocumentPreviewer';
 import { GulfWayLogo } from '../GulfWayLogo';
 import { useLanguage } from '../../i18n/LanguageContext';
 
@@ -1498,16 +1499,15 @@ GW-105,Zaid Al-Harbi,Legal,Compliance Officer,21000,Paid
                 </div>
               </div>
 
-              {/* Embedded Document Preview */}
-              {mergeResult.format === 'pdf' && (
-                <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-100 h-[380px]">
-                  <iframe
-                    src={`${mergeResult.downloadUrl}#toolbar=0&navpanes=0`}
-                    title="Merged PDF Preview"
-                    className="w-full h-full border-0"
-                  />
-                </div>
-              )}
+              {/* Consolidated Document Previewer (Direct Canvas Rendering + Controls) */}
+              <ConsolidatedDocumentPreviewer
+                blob={mergeResult.blob}
+                downloadUrl={mergeResult.downloadUrl}
+                filename={mergeResult.filename}
+                format={mergeResult.format}
+                totalPages={mergeResult.totalPages}
+                fileSize={mergeResult.fileSize}
+              />
 
               {/* Cross-Module Handoff Actions */}
               {mergeResult.format === 'pdf' && (

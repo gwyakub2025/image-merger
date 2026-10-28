@@ -20,7 +20,10 @@ import {
   Scissors,
   Languages,
   Globe,
-  FileStack
+  FileStack,
+  LayoutGrid,
+  UserCheck,
+  Car
 } from 'lucide-react';
 import { BatchConfig, OutputFormat, BatchSet, ActiveTab } from '../types';
 import { GulfWayLogo } from './GulfWayLogo';
@@ -101,6 +104,24 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       {/* Navigation Tabs Switcher */}
       {onSelectTab && (
         <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-2xs shrink-0 overflow-x-auto max-w-full">
+          {/* Suite Hub Launcher */}
+          <button
+            type="button"
+            id="tab-suite-hub-btn"
+            onClick={() => onSelectTab('suite-hub')}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              activeTab === 'suite-hub'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-700 hover:text-slate-900 hover:bg-white/70'
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="whitespace-nowrap font-extrabold">{t('nav.suiteHub', 'Suite Hub')}</span>
+            <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-indigo-500/20 text-indigo-700 font-extrabold">
+              38
+            </span>
+          </button>
+
           {/* Bulk File Merger */}
           <button
             type="button"
@@ -262,6 +283,36 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           >
             <TableProperties className="w-3.5 h-3.5 text-emerald-600" />
             <span className="whitespace-nowrap">{t('nav.sheetMerger', 'Merger')}</span>
+          </button>
+
+          {/* Module: GWDS ATTENDANCE */}
+          <button
+            type="button"
+            id="tab-gwds-attendance-btn"
+            onClick={() => onSelectTab('gwds-attendance')}
+            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              activeTab === 'gwds-attendance'
+                ? 'bg-teal-600 text-white shadow-xs border border-teal-700'
+                : 'text-teal-700 bg-teal-50/80 hover:bg-teal-100 hover:text-teal-900 border border-teal-200/60'
+            }`}
+          >
+            <UserCheck className="w-3.5 h-3.5" />
+            <span className="whitespace-nowrap">{t('nav.gwdsAttendance', 'Attendance')}</span>
+          </button>
+
+          {/* Module: RTA FINES */}
+          <button
+            type="button"
+            id="tab-rta-fines-btn"
+            onClick={() => onSelectTab('rta-fines')}
+            className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              activeTab === 'rta-fines'
+                ? 'bg-rose-600 text-white shadow-xs border border-rose-700'
+                : 'text-rose-700 bg-rose-50/80 hover:bg-rose-100 hover:text-rose-900 border border-rose-200/60'
+            }`}
+          >
+            <Car className="w-3.5 h-3.5" />
+            <span className="whitespace-nowrap">{t('nav.rtaFines', 'RTA Fines')}</span>
           </button>
 
           {/* Module 6: Enterprise Admin Dashboard */}

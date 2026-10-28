@@ -9,7 +9,9 @@ import {
   ArrowUpRight, 
   FileSpreadsheet, 
   FileText,
-  Info
+  Info,
+  UserCheck,
+  Car
 } from 'lucide-react';
 import { GulfWayLogo } from './GulfWayLogo';
 
@@ -18,7 +20,7 @@ interface ExternalModuleViewProps {
   title: string;
   subtitle: string;
   url: string;
-  iconType: 'wps' | 'merger';
+  iconType: 'wps' | 'merger' | 'attendance' | 'rta' | 'external';
   tag: string;
   description: string;
   features: string[];

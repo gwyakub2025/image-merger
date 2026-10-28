@@ -31,6 +31,8 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'nav.translator': 'Translator',
     'nav.wps': 'WPS Extractor',
     'nav.sheetMerger': 'Sheet Merger',
+    'nav.gwdsAttendance': 'GWDS ATTENDANCE',
+    'nav.rtaFines': 'RTA FINES',
     'nav.admin': 'Admin Console',
 
     // Common Actions
@@ -165,6 +167,8 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'nav.translator': 'المترجم الفوري',
     'nav.wps': 'مستخرج تقارير WPS',
     'nav.sheetMerger': 'دمج الجداول VLOOKUP',
+    'nav.gwdsAttendance': 'حضور وانصراف GWDS',
+    'nav.rtaFines': 'مخالفات هيئة الطرق والمواصلات RTA',
     'nav.admin': 'لوحة الإدارة والحوكمة',
 
     // Common Actions

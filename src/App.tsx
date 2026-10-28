@@ -35,6 +35,8 @@ import { PdfCompressorView } from './components/compressor/PdfCompressorView';
 import { PdfSplitterView } from './components/splitter/PdfSplitterView';
 import { TranslatorView } from './components/translator/TranslatorView';
 import { BulkMergerView } from './components/bulkMerger/BulkMergerView';
+import { SuiteHubView } from './components/suite/SuiteHubView';
+import { SuiteModuleView } from './components/suite/SuiteModuleView';
 import { useLanguage } from './i18n/LanguageContext';
 import { Footer } from './components/Footer';
 import { CheckCircle2 } from 'lucide-react';
@@ -123,6 +125,10 @@ export default function App() {
         setActiveTab('converter');
       } else if (hash.startsWith('#batcher')) {
         setActiveTab('batcher');
+      } else if (hash.startsWith('#gwds-attendance') || hash.startsWith('#attendance')) {
+        setActiveTab('gwds-attendance');
+      } else if (hash.startsWith('#rta-fines') || hash.startsWith('#rta')) {
+        setActiveTab('rta-fines');
       }
     };
 
@@ -632,7 +638,10 @@ export default function App() {
         />
 
         {/* Dynamic Tab Views */}
-        {activeTab === 'bulk-merger' ? (
+        {activeTab === 'suite-hub' ? (
+          /* Central Suite Hub: Explorer & Tool Launcher */
+          <SuiteHubView onSelectTab={setActiveTab} />
+        ) : activeTab === 'bulk-merger' ? (
           /* Bulk Files Upload and Merger Module */
           <BulkMergerView
             onShowToast={showToast}
@@ -685,10 +694,10 @@ export default function App() {
               onApplyFilterToBatch={handleApplyFilterToBatch}
             />
           </section>
-        ) : activeTab === 'pdf-compressor' ? (
+        ) : activeTab === 'pdf-compressor' || activeTab === 'compressor' ? (
           /* Advanced WebAssembly / Client-side PDF Compressor */
           <PdfCompressorView onShowToast={showToast} />
-        ) : activeTab === 'pdf-splitter' ? (
+        ) : activeTab === 'pdf-splitter' || activeTab === 'splitter' ? (
           /* Advanced Multi-Mode PDF Splitter & Page Extractor */
           <PdfSplitterView onShowToast={showToast} />
         ) : activeTab === 'translator' ? (
@@ -709,6 +718,9 @@ export default function App() {
         ) : activeTab === 'pdf-editor' ? (
           /* Advanced PDF Editor Tab View */
           <PdfEditorView />
+        ) : activeTab === 'admin' ? (
+          /* Enterprise Admin Console */
+          <AdminDashboard />
         ) : activeTab === 'wps' ? (
           /* WPS Report Extractor Tab View */
           <ExternalModuleView
@@ -726,7 +738,7 @@ export default function App() {
               "Direct Multi-Format Export"
             ]}
           />
-        ) : (
+        ) : activeTab === 'sheet-merger' ? (
           /* Vlookup - Sheet Data Merger Tab View */
           <ExternalModuleView
             id="vlookup-sheet-data-merger"
@@ -742,6 +754,47 @@ export default function App() {
               "Record Deduplication & Diffing",
               "Export to XLS, XLSX, CSV"
             ]}
+          />
+        ) : activeTab === 'gwds-attendance' ? (
+          /* GWDS Staff Attendance & Biometrics Portal */
+          <ExternalModuleView
+            id="gwds-attendance"
+            title="GWDS ATTENDANCE"
+            subtitle="GulfWay Staff Attendance, Biometrics & Shift Management Portal"
+            url="https://gwdsatt.vercel.app"
+            iconType="attendance"
+            tag="GWDS ATT"
+            description="Real-time employee attendance tracking, biometric clock-in logs, shifts, leave balances, and daily roster management."
+            features={[
+              "Daily Staff Clock-In / Clock-Out",
+              "Biometric & Geolocation Verification",
+              "Monthly Attendance Sheets Export",
+              "Shift Scheduling & Overtime Tracking"
+            ]}
+          />
+        ) : activeTab === 'rta-fines' ? (
+          /* RTA Fleet Traffic Fines & Violations Tracking */
+          <ExternalModuleView
+            id="rta-fines"
+            title="RTA FINES"
+            subtitle="GulfWay Fleet Road & Transport Authority (RTA) Traffic Violations & Fines Tracking"
+            url="https://gwdsfelltfines.vercel.app"
+            iconType="rta"
+            tag="RTA FLEET"
+            description="Fleet traffic fines management, vehicle plate violation queries, Salik balance, payment reconciliation, and driver fine allocations."
+            features={[
+              "Real-time RTA Traffic Fines Lookup",
+              "Vehicle Plate & Chassis Inquiry",
+              "Driver Fine Deduction Reconciliation",
+              "Dispute Filing & Receipt Archive"
+            ]}
+          />
+        ) : (
+          /* Dedicated Interactive Enterprise Suite Tool Handler */
+          <SuiteModuleView
+            toolId={activeTab}
+            onBackToHub={() => setActiveTab('suite-hub')}
+            onNavigateToTab={setActiveTab}
           />
         )}
 

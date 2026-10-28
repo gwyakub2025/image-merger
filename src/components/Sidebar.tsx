@@ -20,7 +20,11 @@ import {
   Scissors,
   Languages,
   Globe,
-  FileStack
+  FileStack,
+  LayoutGrid,
+  UserCheck,
+  Car,
+  ExternalLink
 } from 'lucide-react';
 import { BatchConfig, OutputFormat, ActiveTab } from '../types';
 import { GulfWayLogo } from './GulfWayLogo';
@@ -110,8 +114,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {onSelectTab && (
           <div className="pb-3 border-b border-slate-100 space-y-1.5">
             <div className="text-[11px] font-bold text-slate-400 uppercase px-2 mb-1 tracking-wider">
-              {t('nav.tools', 'Tool Modules')}
+              {t('nav.tools', 'Enterprise Suite')}
             </div>
+
+            {/* Suite Hub (All 38 Tools) */}
+            <button
+              type="button"
+              id="sidebar-nav-suite-hub-btn"
+              onClick={() => onSelectTab('suite-hub')}
+              className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors cursor-pointer ${
+                activeTab === 'suite-hub'
+                  ? 'bg-slate-900 text-white font-bold shadow-2xs'
+                  : 'text-slate-700 hover:bg-slate-100 border border-slate-200/80 bg-slate-50/50'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <LayoutGrid className={`w-4 h-4 shrink-0 ${activeTab === 'suite-hub' ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                <span className="truncate font-bold">Suite Hub (38 Tools)</span>
+              </div>
+              <span className={`text-[9px] font-mono px-1.5 py-0.2 font-extrabold rounded ${
+                activeTab === 'suite-hub' ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-800'
+              }`}>
+                ALL
+              </span>
+            </button>
 
             {/* Bulk File Merger */}
             <button
@@ -315,7 +341,77 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </span>
             </button>
 
-            {/* 10. Admin Dashboard */}
+            {/* 10. GWDS ATTENDANCE */}
+            <div className="relative group">
+              <button
+                type="button"
+                id="sidebar-nav-gwds-attendance-btn"
+                onClick={() => onSelectTab('gwds-attendance')}
+                className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors cursor-pointer ${
+                  activeTab === 'gwds-attendance'
+                    ? 'bg-teal-50 text-teal-800 font-semibold border border-teal-300/80 shadow-2xs'
+                    : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                }`}
+                title="GWDS Staff Attendance & Biometrics (https://gwdsatt.vercel.app)"
+              >
+                <div className="flex items-center gap-2 min-w-0 pr-1">
+                  <UserCheck className="w-4 h-4 text-teal-600 shrink-0" />
+                  <span className="truncate">{t('nav.gwdsAttendance', 'GWDS ATTENDANCE')}</span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 bg-teal-50 text-teal-700 border border-teal-200 rounded font-bold">
+                    PORTAL
+                  </span>
+                  <a
+                    href="https://gwdsatt.vercel.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-1 text-slate-400 hover:text-teal-700 hover:bg-teal-100/70 rounded transition-colors"
+                    title="Open https://gwdsatt.vercel.app in new window"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </button>
+            </div>
+
+            {/* 11. RTA FINES */}
+            <div className="relative group">
+              <button
+                type="button"
+                id="sidebar-nav-rta-fines-btn"
+                onClick={() => onSelectTab('rta-fines')}
+                className={`w-full p-2.5 rounded-lg flex items-center justify-between text-left transition-colors cursor-pointer ${
+                  activeTab === 'rta-fines'
+                    ? 'bg-rose-50 text-rose-800 font-semibold border border-rose-300/80 shadow-2xs'
+                    : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                }`}
+                title="RTA Fleet Traffic Violations & Fines (https://gwdsfelltfines.vercel.app)"
+              >
+                <div className="flex items-center gap-2 min-w-0 pr-1">
+                  <Car className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span className="truncate">{t('nav.rtaFines', 'RTA FINES')}</span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 bg-rose-50 text-rose-700 border border-rose-200 rounded font-bold">
+                    RTA
+                  </span>
+                  <a
+                    href="https://gwdsfelltfines.vercel.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-1 text-slate-400 hover:text-rose-700 hover:bg-rose-100/70 rounded transition-colors"
+                    title="Open https://gwdsfelltfines.vercel.app in new window"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </button>
+            </div>
+
+            {/* 12. Admin Dashboard */}
             <div className="pt-1 border-t border-slate-100">
               <button
                 type="button"

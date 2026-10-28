@@ -30,18 +30,72 @@ export interface SheetTemplate {
   badge?: string;
 }
 
-export type ActiveTab = 
-  | 'bulk-merger'
-  | 'batcher' 
-  | 'converter' 
-  | 'resizer' 
-  | 'pdf-editor' 
-  | 'compressor' 
-  | 'splitter' 
-  | 'translator' 
-  | 'wps' 
-  | 'sheet-merger' 
+export type SuiteCategoryId = 
+  | 'file-management'
+  | 'documents'
+  | 'pdf-tools'
+  | 'excel-sheets'
+  | 'presentations'
+  | 'image-tools'
+  | 'language'
   | 'admin';
+
+export type ActiveTab = 
+  | 'suite-hub'
+  // File Management
+  | 'bulk-merger'
+  | 'file-compressor'
+  | 'file-renamer'
+  | 'file-organizer'
+  | 'zip-unzip'
+  | 'duplicate-finder'
+  // Documents
+  | 'doc-editor'
+  | 'converter'
+  | 'doc-merger'
+  | 'doc-compare'
+  | 'doc-ocr'
+  | 'doc-templates'
+  // PDF Tools
+  | 'compressor'
+  | 'pdf-compressor'
+  | 'splitter'
+  | 'pdf-splitter'
+  | 'pdf-editor'
+  | 'pdf-merger'
+  | 'pdf-to-word'
+  | 'pdf-to-excel'
+  | 'pdf-to-jpg'
+  | 'jpg-to-pdf'
+  | 'pdf-sign'
+  | 'pdf-protect'
+  | 'pdf-watermark'
+  | 'pdf-redactor'
+  // Excel / Sheets
+  | 'sheet-merger'
+  | 'sheet-cleaner'
+  | 'data-splitter'
+  | 'data-analyzer'
+  | 'excel-converter'
+  | 'formula-helper'
+  // Presentations
+  | 'ppt-viewer'
+  | 'ppt-to-pdf'
+  | 'pdf-to-ppt'
+  | 'presentation-merger'
+  // Image Tools
+  | 'batcher' 
+  | 'resizer' 
+  | 'image-converter'
+  | 'image-ocr'
+  | 'qr-barcode'
+  // Language
+  | 'translator' 
+  // Admin & External
+  | 'admin'
+  | 'wps'
+  | 'gwds-attendance'
+  | 'rta-fines';
 
 export * from './types/admin';
 export * from './types/pdfCompressor';
