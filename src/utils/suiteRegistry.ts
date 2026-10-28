@@ -605,6 +605,6 @@ export const SUITE_TOOLS: SuiteToolItem[] = [
     description: 'Fleet traffic fines management, vehicle plate violation queries, Salik balance, payment reconciliation, and driver fine allocations.',
     badge: 'Fleet Fines',
     status: 'active',
-    keywords: ['rta', 'fines', 'traffic violations', 'salik', 'fleet', 'vehicles', 'gwdsfelltfines'],
+    keywords: ['rta', 'fines', 'traffic violations', 'salik', 'fleet', 'vehicles', 'gwdsfleetfines'],
   },
 ];

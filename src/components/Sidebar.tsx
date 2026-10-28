@@ -387,7 +387,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     ? 'bg-rose-50 text-rose-800 font-semibold border border-rose-300/80 shadow-2xs'
                     : 'text-slate-600 hover:bg-slate-50 border border-transparent'
                 }`}
-                title="RTA Fleet Traffic Violations & Fines (https://gwdsfelltfines.vercel.app)"
+                title="RTA Fleet Traffic Violations & Fines (https://gwdsfleetfines.vercel.app)"
               >
                 <div className="flex items-center gap-2 min-w-0 pr-1">
                   <Car className="w-4 h-4 text-rose-600 shrink-0" />
@@ -398,12 +398,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     RTA
                   </span>
                   <a
-                    href="https://gwdsfelltfines.vercel.app"
+                    href="https://gwdsfleetfines.vercel.app"
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
                     className="p-1 text-slate-400 hover:text-rose-700 hover:bg-rose-100/70 rounded transition-colors"
-                    title="Open https://gwdsfelltfines.vercel.app in new window"
+                    title="Open https://gwdsfleetfines.vercel.app in new window"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>

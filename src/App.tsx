@@ -778,7 +778,7 @@ export default function App() {
             id="rta-fines"
             title="RTA FINES"
             subtitle="GulfWay Fleet Road & Transport Authority (RTA) Traffic Violations & Fines Tracking"
-            url="https://gwdsfelltfines.vercel.app"
+            url="https://gwdsfleetfines.vercel.app"
             iconType="rta"
             tag="RTA FLEET"
             description="Fleet traffic fines management, vehicle plate violation queries, Salik balance, payment reconciliation, and driver fine allocations."
