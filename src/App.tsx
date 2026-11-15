@@ -39,6 +39,7 @@ import { SuiteHubView } from './components/suite/SuiteHubView';
 import { SuiteModuleView } from './components/suite/SuiteModuleView';
 import { useLanguage } from './i18n/LanguageContext';
 import { Footer } from './components/Footer';
+import { PhotoStudioView } from './components/PhotoStudioView';
 import { CheckCircle2 } from 'lucide-react';
 
 const DEFAULT_CONFIG: BatchConfig = {
@@ -88,6 +89,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.toLowerCase();
+      if (hash.startsWith('#photo-studio')) return 'photo-studio';
       if (hash.startsWith('#admin')) return 'admin';
       if (hash.startsWith('#pdf-compressor') || hash.startsWith('#compressor')) return 'pdf-compressor';
       if (hash.startsWith('#pdf-splitter') || hash.startsWith('#splitter')) return 'pdf-splitter';
@@ -105,7 +107,9 @@ export default function App() {
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash.toLowerCase();
-      if (hash.startsWith('#admin')) {
+      if (hash.startsWith('#photo-studio')) {
+        setActiveTab('photo-studio');
+      } else if (hash.startsWith('#admin')) {
         setActiveTab('admin');
       } else if (hash.startsWith('#pdf-compressor') || hash.startsWith('#compressor')) {
         setActiveTab('pdf-compressor');
@@ -638,7 +642,9 @@ export default function App() {
         />
 
         {/* Dynamic Tab Views */}
-        {activeTab === 'suite-hub' ? (
+        {activeTab === 'photo-studio' ? (
+          <PhotoStudioView />
+        ) : activeTab === 'suite-hub' ? (
           /* Central Suite Hub: Explorer & Tool Launcher */
           <SuiteHubView onSelectTab={setActiveTab} />
         ) : activeTab === 'bulk-merger' ? (
