@@ -41,6 +41,7 @@ export type SuiteCategoryId =
   | 'admin';
 
 export type ActiveTab = 
+  | 'photo-studio'
   | 'suite-hub'
   // File Management
   | 'bulk-merger'

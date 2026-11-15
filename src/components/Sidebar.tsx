@@ -130,7 +130,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <div className="flex items-center gap-2">
                 <LayoutGrid className={`w-4 h-4 shrink-0 ${activeTab === 'suite-hub' ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                <span className="truncate font-bold">Suite Hub (38 Tools)</span>
+                <span className="truncate font-bold">Suite Hub (39 Tools)</span>
               </div>
               <span className={`text-[9px] font-mono px-1.5 py-0.2 font-extrabold rounded ${
                 activeTab === 'suite-hub' ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-800'
@@ -138,6 +138,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 ALL
               </span>
             </button>
+
+            <button type="button" onClick={() => { onSelectTab?.('photo-studio'); window.location.hash='photo-studio'; }} className={`w-full p-2.5 rounded-lg flex items-center gap-2 text-left ${activeTab === 'photo-studio' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><ImageIcon className="w-4 h-4"/> UAE ID & Visa Photo Studio <span className="ml-auto text-[9px] bg-indigo-100 text-indigo-700 px-1.5 rounded">NEW</span></button>
 
             {/* Bulk File Merger */}
             <button
